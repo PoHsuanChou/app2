@@ -1,18 +1,80 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Animated, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import SockJS from 'sockjs-client';
+import { Stomp } from '@stomp/stompjs';
 
-const ChatScreen = ({ navigation }) => {
+const SOCKET_URL = 'http://localhost:8080/ws';
+
+const ChatScreen = ({ navigation, route }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
+  const [stompClient, setStompClient] = useState(null);
   const scrollViewRef = useRef();
+  
+  // 假設這些值從路由參數或登入狀態獲取
+  const currentUser = route.params?.currentUser || 'user1';
+  const chattingWith = route.params?.chattingWith || 'user2';
+
+  useEffect(() => {
+    connectWebSocket();
+    return () => {
+      if (stompClient) {
+        stompClient.disconnect();
+      }
+    };
+  }, []);
+
+  const connectWebSocket = () => {
+    const sock = new SockJS(SOCKET_URL);
+    const client = Stomp.over(sock);
+
+    client.connect({}, () => {
+      setStompClient(client);
+      
+      // 訂閱私人訊息
+      client.subscribe(`/user/${currentUser}/queue/messages`, (message) => {
+        console.log('Received message:', message);
+        const newMessage = JSON.parse(message.body);
+        addMessage({
+          id: Date.now().toString(),
+          text: newMessage.content,
+          isUser: false,
+          timestamp: new Date(),
+          sender: newMessage.from
+        });
+      });
+
+      // 訂閱公開頻道
+      client.subscribe('/topic/public', (message) => {
+        const newMessage = JSON.parse(message.body);
+        // 系統消息可以特別處理
+        if (newMessage.type === 'SYSTEM') {
+          // 處理系統消息
+        }
+      });
+
+      // 註冊使用者
+      client.send("/app/chat.register", {}, 
+        JSON.stringify({
+          from: currentUser,
+          content: "已加入聊天",
+        })
+      );
+    });
+  };
+
+  const addMessage = (message) => {
+    setMessages(prevMessages => [...prevMessages, message]);
+    scrollViewRef.current?.scrollToEnd({ animated: true });
+  };
 
   const renderMessage = ({ item, index }) => {
     const isLastMessage = index === messages.length - 1;
     
     return (
-      <Animated.View 
+      <Animated.View
         style={[
           styles.messageBubble,
           item.isUser ? styles.userMessage : styles.aiMessage,
@@ -20,7 +82,7 @@ const ChatScreen = ({ navigation }) => {
         ]}
       >
         {!item.isUser && (
-          <Image 
+          <Image
             source={require('../assets/tarot-ai-avatar.png')}
             style={styles.avatar}
           />
@@ -36,7 +98,10 @@ const ChatScreen = ({ navigation }) => {
             {item.text}
           </Text>
           <Text style={styles.messageTime}>
-            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {new Date(item.timestamp).toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}
           </Text>
         </View>
       </Animated.View>
@@ -44,37 +109,34 @@ const ChatScreen = ({ navigation }) => {
   };
 
   const sendMessage = () => {
-    if (inputText.trim() === '') return;
-    
+    if (inputText.trim() === '' || !stompClient) return;
+
+    const messageData = {
+      from: currentUser,
+      to: chattingWith,
+      content: inputText,
+      timestamp: new Date().toISOString()
+    };
+
+    // 發送訊息到伺服器
+    stompClient.send("/app/private-message", {}, JSON.stringify(messageData));
+
+    // 新增訊息到本地顯示
     const newMessage = {
       id: Date.now().toString(),
       text: inputText,
       isUser: true,
       timestamp: new Date(),
     };
-    
-    setMessages(prevMessages => [...prevMessages, newMessage]);
+
+    addMessage(newMessage);
     setInputText('');
-    
-    // AI回覆
-    setTimeout(() => {
-      const aiResponse = {
-        id: Date.now().toString(),
-        text: "讓我為您解讀塔羅牌的訊息...",
-        isUser: false,
-        timestamp: new Date(),
-      };
-      setMessages(prevMessages => [...prevMessages, aiResponse]);
-      
-      // 自動滾動到底部
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 1000);
   };
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.headerButton}
           onPress={() => navigation.goBack()}
         >
@@ -87,7 +149,7 @@ const ChatScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
@@ -104,12 +166,12 @@ const ChatScreen = ({ navigation }) => {
             style={styles.input}
             value={inputText}
             onChangeText={setInputText}
-            placeholder="詢問塔羅..."
+            placeholder="輸入訊息..."
             placeholderTextColor="#666"
             multiline
             maxLength={500}
           />
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
               styles.sendButton,
               !inputText.trim() && styles.sendButtonDisabled
@@ -117,7 +179,7 @@ const ChatScreen = ({ navigation }) => {
             onPress={sendMessage}
             disabled={!inputText.trim()}
           >
-            <Text style={styles.sendButtonText}>問卜</Text>
+            <Text style={styles.sendButtonText}>發送</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
