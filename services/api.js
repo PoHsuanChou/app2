@@ -1,4 +1,4 @@
-const BASE_URL = 'YOUR_BACKEND_URL'; // Replace with your actual backend URL
+const BASE_URL = 'localhost:8080'; // Replace with your actual backend URL
 
 export const registerUser = async (userData) => {
   try {
@@ -13,7 +13,7 @@ export const registerUser = async (userData) => {
       selectedCard: userData.selectedCard,
     };
 
-    const response = await fetch(`${BASE_URL}/api/users/register`, {
+    const response = await fetch(`${BASE_URL}/api/login/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -8,7 +8,7 @@ import { loginUser } from '../services/api'; // Import loginUser
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(true);
+  const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
 //   const handleGoogleSignIn = async () => {
