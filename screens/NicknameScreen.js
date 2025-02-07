@@ -11,6 +11,7 @@ const NicknameScreen = () => {
     if (nickname.length > 0) {
       navigation.navigate('Gender', { 
         email: route.params?.email,
+        password: route.params?.password,
         nickname 
       });
     }

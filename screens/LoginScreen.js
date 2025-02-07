@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
 // Import icons - you'll need to install @expo/vector-icons or react-native-vector-icons
 import { AntDesign } from '@expo/vector-icons';
 // import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { loginUser } from '../services/api'; // Import loginUser
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
 //   const handleGoogleSignIn = async () => {
 //     try {
@@ -18,8 +22,54 @@ const LoginScreen = ({ navigation }) => {
 //     }
 //   };
 
-  const handleEmailContinue = () => {
-    navigation.navigate('Nickname', { email });
+  const handleEmailContinue = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      if (isSignUp) {
+        // If signing up, proceed to nickname screen
+        navigation.navigate('Nickname', { 
+          email,
+          password
+        });
+      } else {
+        // If logging in, attempt login
+        const response = await loginUser(email, password);
+        console.log('Login response:', response);
+        
+        if (response.success) {
+          // If login successful, navigate to tarot deck
+          navigation.navigate('TarotDeck', { 
+            userData: response.userData 
+          });
+        } else {
+          Alert.alert('Login Failed', response.message || 'Invalid credentials');
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Something went wrong');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const isValidEmail = (email) => {
+    return /\S+@\S+\.\S+/.test(email);
   };
 
   return (
@@ -37,14 +87,44 @@ const LoginScreen = ({ navigation }) => {
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          editable={!isLoading}
+        />
+
+        {/* Password Input */}
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your password"
+          placeholderTextColor="#666"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoCapitalize="none"
+          editable={!isLoading}
         />
 
         {/* Email Button */}
         <TouchableOpacity 
-          style={styles.emailButton}
+          style={[styles.emailButton, isLoading && styles.disabledButton]}
           onPress={handleEmailContinue}
+          disabled={isLoading}
         >
-          <Text style={styles.buttonText}>Continue with Email</Text>
+          {isLoading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.buttonText}>
+              {isSignUp ? 'Sign Up with Email' : 'Login with Email'}
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Toggle Sign Up/Login */}
+        <TouchableOpacity 
+          onPress={() => setIsSignUp(!isSignUp)}
+          style={styles.toggleButton}
+        >
+          <Text style={styles.toggleText}>
+            {isSignUp ? 'Already have an account? Login' : 'Need an account? Sign Up'}
+          </Text>
         </TouchableOpacity>
 
         {/* Divider */}
@@ -163,6 +243,17 @@ const styles = StyleSheet.create({
   termsLink: {
     color: 'white',
     textDecorationLine: 'underline',
+  },
+  toggleButton: {
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  toggleText: {
+    color: '#5C5CFF',
+    fontSize: 14,
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
 });
 
