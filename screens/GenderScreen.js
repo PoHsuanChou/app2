@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 
-const GenderScreen = ({ navigation }) => {
+const GenderScreen = ({ navigation, route }) => {
   const [selectedGender, setSelectedGender] = useState(null);
 
   const genderOptions = [
@@ -13,7 +13,10 @@ const GenderScreen = ({ navigation }) => {
 
   const handleGenderSelect = (gender) => {
     setSelectedGender(gender);
-    navigation.navigate('Birthday');
+    navigation.navigate('Birthday', {
+      ...route.params,
+      gender: gender
+    });
   };
 
   return (

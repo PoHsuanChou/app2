@@ -4,7 +4,7 @@ import { Picker } from '@react-native-picker/picker';
 
 const { width } = Dimensions.get('window');
 
-const BirthdayScreen = ({ navigation }) => {
+const BirthdayScreen = ({ navigation, route }) => {
   const [selectedMonth, setSelectedMonth] = useState('January');
   const [selectedDay, setSelectedDay] = useState('1');
   const [selectedYear, setSelectedYear] = useState('2000');
@@ -81,6 +81,20 @@ const BirthdayScreen = ({ navigation }) => {
     setZodiacSign(newZodiacSign);
   }, [selectedMonth, selectedDay]);
 
+  const handleContinue = () => {
+    const birthdayData = {
+      month: selectedMonth,
+      day: selectedDay,
+      year: selectedYear,
+      zodiacSign
+    };
+
+    navigation.navigate('TarotDeck', {
+      ...route.params,
+      birthday: birthdayData
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -146,10 +160,7 @@ const BirthdayScreen = ({ navigation }) => {
 
           <TouchableOpacity 
             style={styles.continueButton}
-            onPress={() => {
-              console.log('Navigating to TarotDeck');
-              navigation.navigate('TarotDeck');
-            }}
+            onPress={handleContinue}
           >
             <Text style={styles.continueButtonText}>→</Text>
           </TouchableOpacity>

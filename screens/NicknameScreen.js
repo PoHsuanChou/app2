@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 const NicknameScreen = () => {
   const [nickname, setNickname] = useState('');
   const navigation = useNavigation();
+  const route = useRoute();
 
   const handleContinue = () => {
     if (nickname.length > 0) {
-      navigation.navigate('Gender');
+      navigation.navigate('Gender', { 
+        email: route.params?.email,
+        nickname 
+      });
     }
   };
 

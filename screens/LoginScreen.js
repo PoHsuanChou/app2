@@ -19,7 +19,7 @@ const LoginScreen = ({ navigation }) => {
 //   };
 
   const handleEmailContinue = () => {
-    navigation.navigate('Nickname');
+    navigation.navigate('Nickname', { email });
   };
 
   return (

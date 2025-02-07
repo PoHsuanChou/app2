@@ -8,7 +8,9 @@ import {
   Animated,
   Dimensions,
   Image,
+  ActivityIndicator,
 } from 'react-native';
+import { registerUser } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.4; // Increased card width
@@ -40,8 +42,18 @@ const tarotCards = [
   ];
   
 
-const TarotDeckScreen = ({ navigation }) => {
+const TarotDeckScreen = ({ navigation, route }) => {
   const [selectedCard, setSelectedCard] = useState(null);
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  // Get user data from previous screens
+  const userData = {
+    email: route.params?.email,
+    nickname: route.params?.nickname,
+    gender: route.params?.gender,
+    birthday: route.params?.birthday,
+    selectedCard: null, // Will be updated when user selects a card
+  };
 
   // Generate positions for cards in a semicircle, now using tarotCards array
   const cards = tarotCards.map((tarotCard, index) => {
@@ -55,6 +67,36 @@ const TarotDeckScreen = ({ navigation }) => {
       y: radius * Math.sin(angle) + height * 0.2,
     };
   });
+
+  const handleCardSelection = async (card) => {
+    setSelectedCard(card);
+    
+    try {
+      setIsRegistering(true);
+      // Update userData with selected card
+      const updatedUserData = {
+        ...userData,
+        selectedCard: {
+          id: card.id,
+          name: card.name,
+        },
+      };
+
+      // Send data to backend
+      const response = await registerUser(updatedUserData);
+      
+      // Navigate to next screen with response data
+      navigation.navigate('Chat', { 
+        userData: response,
+        selectedCard: card 
+      });
+    } catch (error) {
+      console.error('Error registering user:', error);
+      // Handle error (show alert, etc.)
+    } finally {
+      setIsRegistering(false);
+    }
+  };
 
   const renderCard = (card, index) => {
     const isSelected = selectedCard?.id === card.id;
@@ -75,13 +117,8 @@ const TarotDeckScreen = ({ navigation }) => {
         ]}
       >
         <TouchableOpacity
-          onPress={() => {
-            setSelectedCard(card);
-            navigation.navigate('NextScreen', { 
-              selectedCard: card,
-              cardName: card.name 
-            });
-          }}
+          onPress={() => handleCardSelection(card)}
+          disabled={isRegistering}
         >
           <View style={styles.cardInner}>
             <View style={[
@@ -125,6 +162,12 @@ const TarotDeckScreen = ({ navigation }) => {
           <Text style={styles.beginButtonText}>Begin Tarot Journey</Text>
         </TouchableOpacity>
       
+        {isRegistering && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#5C5CFF" />
+            <Text style={styles.loadingText}>Registering...</Text>
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -231,6 +274,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#f4511e',
     marginBottom: 20,
     marginTop: 10,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: 'white',
+    marginTop: 10,
+    fontSize: 16,
   },
 });
 
