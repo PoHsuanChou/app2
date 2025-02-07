@@ -8,6 +8,7 @@ import GenderScreen from './screens/GenderScreen';
 import BirthdayScreen from './screens/BirthdayScreen';
 import TarotDeckScreen from './screens/TarotDeckScreen';
 import ChatScreen from './screens/ChatScreen';
+import MainScreen from './screens/MainScreen';
 
 const Stack = createStackNavigator();
 
@@ -60,6 +61,14 @@ function App() {
             },
             headerTintColor: '#fff',
             headerShown: true,
+          }}
+        />
+        <Stack.Screen 
+          name="Main" 
+          component={MainScreen}
+          options={{
+            headerShown: false,
+            gestureEnabled: false
           }}
         />
       </Stack.Navigator>

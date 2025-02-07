@@ -9,6 +9,7 @@ import {
   Dimensions,
   Image,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { registerUser } from '../services/api';
 
@@ -73,7 +74,6 @@ const TarotDeckScreen = ({ navigation, route }) => {
     
     try {
       setIsRegistering(true);
-      // Update userData with selected card
       const updatedUserData = {
         ...userData,
         selectedCard: {
@@ -82,17 +82,20 @@ const TarotDeckScreen = ({ navigation, route }) => {
         },
       };
 
-      // Send data to backend
       const response = await registerUser(updatedUserData);
-      
-      // Navigate to next screen with response data
-      navigation.navigate('Chat', { 
-        userData: response,
-        selectedCard: card 
+      navigation.navigate('Main', { 
+        userData: response.userData,
       });
+      // if (response.success) {
+      //   navigation.navigate('Main', { 
+      //     userData: response.userData,
+      //   });
+      // } else {
+      //   Alert.alert('Error', response.message || 'Registration failed');
+      // }
     } catch (error) {
       console.error('Error registering user:', error);
-      // Handle error (show alert, etc.)
+      Alert.alert('Error', 'Failed to complete registration');
     } finally {
       setIsRegistering(false);
     }
