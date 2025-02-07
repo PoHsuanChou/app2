@@ -12,7 +12,7 @@ import {
 
 const { width } = Dimensions.get('window');
 
-const MainScreen = ({ route }) => {
+const MainScreen = ({ route, navigation }) => {
   const { userData } = route.params || {};
 
   // Placeholder data for matches and messages
@@ -122,7 +122,10 @@ const MainScreen = ({ route }) => {
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => navigation.navigate('TarotCards')}
+        >
           <Text style={styles.navIcon}>🔥</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
@@ -130,12 +133,6 @@ const MainScreen = ({ route }) => {
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
           <Text style={styles.navIcon}>✨</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navIcon}>💬</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navIcon}>👤</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

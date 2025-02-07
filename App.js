@@ -9,6 +9,7 @@ import BirthdayScreen from './screens/BirthdayScreen';
 import TarotDeckScreen from './screens/TarotDeckScreen';
 import ChatScreen from './screens/ChatScreen';
 import MainScreen from './screens/MainScreen';
+import TarotCardsScreen from './screens/TarotCardsScreen';
 
 const Stack = createStackNavigator();
 
@@ -69,6 +70,14 @@ function App() {
           options={{
             headerShown: false,
             gestureEnabled: false
+          }}
+        />
+        <Stack.Screen 
+          name="TarotCards" 
+          component={TarotCardsScreen}
+          options={{
+            headerShown: false,
+            presentation: 'modal'
           }}
         />
       </Stack.Navigator>
