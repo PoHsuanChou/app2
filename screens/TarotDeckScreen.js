@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,9 +20,31 @@ const cardImage = require('../assets/card-back.png'); // Update this path to mat
 
 const TarotDeckScreen = ({ navigation, route }) => {
   const [isRegistering, setIsRegistering] = useState(false);
-  const cardScale = new Animated.Value(0);
-  const cardOpacity = new Animated.Value(0);
-  const buttonOpacity = new Animated.Value(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const cardScale = useRef(new Animated.Value(1)).current;
+  const cardOpacity = useRef(new Animated.Value(1)).current;
+  const messageOpacity = useRef(new Animated.Value(0)).current;
+  const buttonOpacity = new Animated.Value(1);
+
+  const flipCard = () => {
+    if (!isFlipped) {
+      Animated.sequence([
+        // First flip the card
+        Animated.spring(cardScale, {
+          toValue: 0,
+          friction: 8,
+          tension: 10,
+          useNativeDriver: true,
+        }),
+        // Then fade in the message
+        Animated.timing(messageOpacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        })
+      ]).start(() => setIsFlipped(true));
+    }
+  };
 
   useEffect(() => {
     // Start entrance animations
@@ -48,31 +70,22 @@ const TarotDeckScreen = ({ navigation, route }) => {
   }, []);
 
   const handleBeginJourney = async () => {
+    if (!isFlipped) {
+      flipCard();
+      return;
+    }
+
     try {
       setIsRegistering(true);
       const response = await registerUser(route.params);
-      
-      // Success animation
-      Animated.parallel([
-        Animated.timing(cardScale, {
-          toValue: 1.2,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(cardOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        navigation.navigate('Main', { 
-          userData: response.userData,
-        });
+      // Directly navigate to Main screen
+      navigation.navigate('Main', { 
+        userData: response.userData,
       });
-
     } catch (error) {
       console.error('Error registering user:', error);
       Alert.alert('Error', 'Failed to complete registration');
+    } finally {
       setIsRegistering(false);
     }
   };
@@ -81,24 +94,38 @@ const TarotDeckScreen = ({ navigation, route }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Begin Your{'\n'}Tarot Journey</Text>
-        <Text style={styles.subtitle}>Your spiritual path awaits</Text>
+        <Text style={styles.subtitle}>Tap the card to reveal your destiny</Text>
       </View>
 
       <View style={styles.centerContainer}>
-        <Animated.View 
+        <TouchableOpacity onPress={flipCard} activeOpacity={1}>
+          <Animated.View
+            style={[
+              styles.cardContainer,
+              {
+                transform: [{ scale: cardScale }],
+                opacity: cardScale, // Link opacity to scale
+              },
+            ]}
+          >
+            <Image 
+              source={cardImage}
+              style={styles.cardImage}
+              resizeMode="cover"
+            />
+          </Animated.View>
+        </TouchableOpacity>
+
+        <Animated.View
           style={[
-            styles.card,
+            styles.messageContainer,
             {
-              transform: [{ scale: cardScale }],
-              opacity: cardOpacity,
-            }
+              opacity: messageOpacity,
+            },
           ]}
         >
-          <Image 
-            source={cardImage}
-            style={styles.cardImage}
-            resizeMode="cover"
-          />
+          <Text style={styles.messageText}>Let's Go!</Text>
+          <Text style={styles.messageSubtext}>Your journey awaits...</Text>
         </Animated.View>
       </View>
 
@@ -106,10 +133,10 @@ const TarotDeckScreen = ({ navigation, route }) => {
         <TouchableOpacity
           style={styles.beginButton}
           onPress={handleBeginJourney}
-          disabled={isRegistering}
+          disabled={isRegistering || !isFlipped}
         >
           <Text style={styles.beginButtonText}>
-            {isRegistering ? 'Creating Your Journey...' : 'Begin Tarot Journey'}
+            {isRegistering ? 'Creating Your Journey...' : 'Begin Journey'}
           </Text>
           {isRegistering && (
             <ActivityIndicator color="white" style={styles.loader} />
@@ -145,9 +172,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  card: {
+  cardContainer: {
     width: width * 0.6,
     height: height * 0.4,
+    position: 'relative',
+    perspective: 2000,
+  },
+  card: {
+    width: '100%',
+    height: '100%',
     borderRadius: 20,
     backgroundColor: 'transparent',
     overflow: 'hidden',
@@ -159,6 +192,14 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  cardFace: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backfaceVisibility: 'hidden',
+    backgroundColor: '#1a1a1a',
+    transform: [{ perspective: 2000 }],
   },
   cardImage: {
     width: '100%',
@@ -184,6 +225,23 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginLeft: 10,
+  },
+  messageContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  messageText: {
+    color: '#FFD700',
+    fontSize: 48,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  messageSubtext: {
+    color: '#666',
+    fontSize: 18,
+    textAlign: 'center',
   },
 });
 
