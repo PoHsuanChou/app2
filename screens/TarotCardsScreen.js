@@ -55,6 +55,10 @@ const TarotCardsScreen = ({ navigation }) => {
     navigation.goBack();
   };
 
+  const handleCardSelect = (cardId) => {
+    navigation.navigate('CardReveal', { cardId });
+  };
+
   // Generate positions for cards in a circular arc
   const generateCardPositions = () => {
     const cards = [];
