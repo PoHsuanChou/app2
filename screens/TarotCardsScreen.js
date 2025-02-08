@@ -13,6 +13,8 @@ import {
 
 const { width, height } = Dimensions.get('window');
 
+const cardBackImage = require('../assets/card-back.png'); // Add your card back image
+
 const TarotCardsScreen = ({ navigation }) => {
   const [rotation, setRotation] = useState(0);
   const rotationAnim = useRef(new Animated.Value(0)).current;
@@ -92,24 +94,19 @@ const TarotCardsScreen = ({ navigation }) => {
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
-
-        <Text style={styles.title}>Swipe to{'\n'}See All Cards</Text>
-        <Text style={styles.subtitle}>Tap to choose card</Text>
+        <Text style={styles.headerTitle}>Your Cards</Text>
       </View>
 
       <View style={styles.centerContainer}>
         <Animated.View 
-          style={[
-            styles.cardsWrapper,
-            {
-              transform: [{
-                rotate: rotationAnim.interpolate({
-                  inputRange: [0, 360],
-                  outputRange: [`${rotation}deg`, `${rotation + 360}deg`]
-                })
-              }]
-            }
-          ]}
+          style={[styles.cardsWrapper, {
+            transform: [{
+              rotate: rotationAnim.interpolate({
+                inputRange: [0, 360],
+                outputRange: [`${rotation}deg`, `${rotation + 360}deg`]
+              })
+            }]
+          }]}
           {...panResponder.panHandlers}
         >
           {cardPositions.map((card) => (
@@ -123,20 +120,15 @@ const TarotCardsScreen = ({ navigation }) => {
                     { translateY: card.position.y },
                     { rotate: `${card.rotation}deg` }
                   ],
-                  zIndex: cardPositions.length - card.id,
                 },
               ]}
+              onPress={() => handleCardSelect(card.id)}
             >
-              <Image
-                source={{ uri: card.image }} // Use card image source
+              <Image 
+                source={cardBackImage}
                 style={styles.cardImage}
-                resizeMode="contain" // Or "cover" depending on your needs
+                resizeMode="cover"
               />
-              <View style={styles.cardInner}>
-                <View style={styles.cardPattern}>
-                  <View style={styles.patternOverlay} />
-                </View>
-              </View>
             </TouchableOpacity>
           ))}
         </Animated.View>
@@ -167,17 +159,11 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 28,
   },
-  title: {
+  headerTitle: {
     color: 'white',
     fontSize: 40,
     fontWeight: 'bold',
     lineHeight: 48,
-  },
-  subtitle: {
-    color: '#666',
-    fontSize: 16,
-    marginTop: 10,
-    marginBottom: 20,
   },
   centerContainer: {
     flex: 1,
@@ -204,32 +190,10 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
   },
-  cardInner: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#B8860B',
-    borderRadius: 4,
-    padding: 1,
-  },
-  cardPattern: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: '#FFD700',
-  },
-  patternOverlay: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#FFD700',
-    opacity: 0.3,
-    backgroundColor: '#1a1a1a',
-  },
   cardImage: {
-    flex: 1,
     width: '100%',
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 8,
   },
 });
 
