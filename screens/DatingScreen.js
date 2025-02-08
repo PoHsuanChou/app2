@@ -9,6 +9,7 @@ import {
   Animated,
   PanResponder,
   TouchableOpacity,
+  Easing,
 } from 'react-native';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -23,6 +24,10 @@ const DatingScreen = ({ navigation }) => {
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
     outputRange: ['-10deg', '0deg', '10deg'],
   });
+  const [showMatch, setShowMatch] = useState(false);
+  const matchScale = useRef(new Animated.Value(0)).current;
+  const matchOpacity = useRef(new Animated.Value(0)).current;
+  const sparklesOpacity = useRef(new Animated.Value(0)).current;
 
   // Sample users data - replace with your API data
   const users = [
@@ -62,12 +67,51 @@ const DatingScreen = ({ navigation }) => {
     })
   ).current;
 
+  const showMatchAnimation = () => {
+    setShowMatch(true);
+    matchScale.setValue(0);
+    matchOpacity.setValue(0);
+    sparklesOpacity.setValue(0);
+
+    Animated.parallel([
+      // Scale up the "It's a Match!" text
+      Animated.spring(matchScale, {
+        toValue: 1,
+        friction: 6,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      // Fade in the overlay and text
+      Animated.timing(matchOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      // Sparkle animation
+      Animated.sequence([
+        Animated.delay(300),
+        Animated.timing(sparklesOpacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  };
+
   const swipeRight = () => {
     Animated.timing(position, {
       toValue: { x: SCREEN_WIDTH + 100, y: lastGesture.current.dy },
       duration: 250,
       useNativeDriver: true,
-    }).start(() => nextCard());
+    }).start(() => {
+      // Show match animation randomly or based on your logic
+      if (Math.random() < 0.5) { // 50% chance of match
+        showMatchAnimation();
+      } else {
+        nextCard();
+      }
+    });
   };
 
   const swipeLeft = () => {
@@ -162,6 +206,60 @@ const DatingScreen = ({ navigation }) => {
       <View style={styles.cardContainer}>
         {renderCard()}
       </View>
+
+      {showMatch && (
+        <Animated.View 
+          style={[
+            styles.matchOverlay,
+            { opacity: matchOpacity }
+          ]}
+        >
+          <Animated.Image
+            source={require('../assets/tarot-ai-avatar.png')}
+            style={[
+              styles.sparkles,
+              {
+                opacity: sparklesOpacity,
+                transform: [{ scale: matchScale }]
+              }
+            ]}
+          />
+          <Animated.Text 
+            style={[
+              styles.matchText,
+              {
+                transform: [{ scale: matchScale }]
+              }
+            ]}
+          >
+            It's a Match!
+          </Animated.Text>
+          <Animated.View 
+            style={[
+              styles.matchProfiles,
+              { opacity: sparklesOpacity }
+            ]}
+          >
+            <Image 
+              source={users[currentIndex].image}
+              style={styles.matchProfile}
+            />
+            <Image 
+              source={require('../assets/tarot-ai-avatar.png')}
+              style={styles.matchProfile}
+            />
+          </Animated.View>
+          <TouchableOpacity 
+            style={styles.keepSwiping}
+            onPress={() => {
+              setShowMatch(false);
+              nextCard();
+            }}
+          >
+            <Text style={styles.keepSwipingText}>Keep Swiping</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
 
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.button} onPress={() => swipeLeft()}>
@@ -304,6 +402,56 @@ const styles = StyleSheet.create({
   refreshButtonText: {
     color: 'white',
     fontSize: 16,
+  },
+  matchOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  matchText: {
+    color: 'white',
+    fontSize: 44,
+    fontWeight: 'bold',
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  sparkles: {
+    position: 'absolute',
+    width: SCREEN_WIDTH * 0.8,
+    height: SCREEN_WIDTH * 0.8,
+    opacity: 0.8,
+  },
+  matchProfiles: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  matchProfile: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: 'white',
+    margin: 10,
+  },
+  keepSwiping: {
+    backgroundColor: '#5C5CFF',
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 25,
+    marginTop: 20,
+  },
+  keepSwipingText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
 
