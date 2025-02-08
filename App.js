@@ -12,6 +12,7 @@ import MainScreen from './screens/MainScreen';
 import TarotCardsScreen from './screens/TarotCardsScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import ProfilePictureScreen from './screens/ProfilePictureScreen';
+import DatingScreen from './screens/DatingScreen';
 
 const Stack = createStackNavigator();
 
@@ -86,6 +87,13 @@ function App() {
         <Stack.Screen 
           name="Settings" 
           component={SettingsScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="dating" 
+          component={DatingScreen}
           options={{
             headerShown: false,
           }}
