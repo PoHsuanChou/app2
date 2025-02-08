@@ -130,7 +130,7 @@ const MainScreen = ({ route, navigation }) => {
         </TouchableOpacity>
         <TouchableOpacity 
         style={styles.navItem}
-        onPress={() => navigation.navigate('MainScreen')}
+        onPress={() => navigation.navigate('dating')}
         >
           <Text style={styles.navIcon}>🔍</Text>
         </TouchableOpacity>

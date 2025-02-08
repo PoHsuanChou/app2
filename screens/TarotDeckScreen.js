@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,171 +7,111 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  Image,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import { registerUser } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.4; // Increased card width
-const CARD_HEIGHT = height * 0.3; // Increased card height
-const VISIBLE_CARDS = 20; // More cards for the arc
-
-// Placeholder tarot card data
-const tarotCards = [
-    { id: '1', name: 'The Fool' },
-    { id: '2', name: 'The Magician' },
-    { id: '3', name: 'The High Priestess' },
-    { id: '4', name: 'The Empress' },
-    { id: '5', name: 'The Emperor' },
-    { id: '6', name: 'The Hierophant' },
-    { id: '7', name: 'The Lovers' },
-    { id: '8', name: 'The Chariot' },
-    { id: '9', name: 'Strength' },
-    { id: '10', name: 'The Hermit' },
-    { id: '11', name: 'Wheel of Fortune' },
-    { id: '12', name: 'Justice' },
-    { id: '13', name: 'The Hanged Man' },
-    { id: '14', name: 'Death' },
-    { id: '15', name: 'Temperance' },
-    { id: '16', name: 'The Devil' },
-    { id: '17', name: 'The Tower' },
-    { id: '18', name: 'The Star' },
-    { id: '19', name: 'The Moon' },
-    { id: '20', name: 'The Sun' },
-  ];
-  
 
 const TarotDeckScreen = ({ navigation, route }) => {
-  const [selectedCard, setSelectedCard] = useState(null);
   const [isRegistering, setIsRegistering] = useState(false);
+  const cardScale = new Animated.Value(0);
+  const cardOpacity = new Animated.Value(0);
+  const buttonOpacity = new Animated.Value(0);
 
-  // Get user data from previous screens
-  const userData = {
-    email: route.params?.email,
-    nickname: route.params?.nickname,
-    gender: route.params?.gender,
-    birthday: route.params?.birthday,
-    selectedCard: null, // Will be updated when user selects a card
-  };
+  useEffect(() => {
+    // Start entrance animations
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(cardScale, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardOpacity, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(buttonOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
-  // Generate positions for cards in a semicircle, now using tarotCards array
-  const cards = tarotCards.map((tarotCard, index) => {
-    const angle = (Math.PI / 2) * (index / (tarotCards.length - 3)) - Math.PI / 1.5;
-    const radius = height * 0.3;
-    
-    return {
-      ...tarotCard, // Spread the tarot card data (id and name)
-      rotation: ((index / (tarotCards.length - 1)) * 90 - 45),
-      x: radius * Math.cos(angle),
-      y: radius * Math.sin(angle) + height * 0.2,
-    };
-  });
-
-  const handleCardSelection = async (card) => {
-    setSelectedCard(card);
-    
+  const handleBeginJourney = async () => {
     try {
       setIsRegistering(true);
-      const updatedUserData = {
-        ...userData,
-        selectedCard: {
-          id: card.id,
-          name: card.name,
-        },
-      };
-
-      const response = await registerUser(updatedUserData);
-      navigation.navigate('Main', { 
-        userData: response.userData,
+      const response = await registerUser(route.params);
+      
+      // Success animation
+      Animated.parallel([
+        Animated.timing(cardScale, {
+          toValue: 1.2,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        navigation.navigate('Main', { 
+          userData: response.userData,
+        });
       });
-      // if (response.success) {
-      //   navigation.navigate('Main', { 
-      //     userData: response.userData,
-      //   });
-      // } else {
-      //   Alert.alert('Error', response.message || 'Registration failed');
-      // }
+
     } catch (error) {
       console.error('Error registering user:', error);
       Alert.alert('Error', 'Failed to complete registration');
-    } finally {
       setIsRegistering(false);
     }
   };
 
-  const renderCard = (card, index) => {
-    const isSelected = selectedCard?.id === card.id;
-
-    return (
-      <Animated.View
-        key={card.id}
-        style={[
-          styles.card,
-          {
-            transform: [
-              { translateX: card.x },
-              { translateY: card.y },
-              { rotate: `${card.rotation}deg` },
-            ],
-            zIndex: tarotCards.length - index,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => handleCardSelection(card)}
-          disabled={isRegistering}
-        >
-          <View style={styles.cardInner}>
-            <View style={[
-              styles.cardPattern,
-              isSelected && styles.selectedCard
-            ]} />
-            {isSelected && (
-              <View style={styles.cardNameContainer}>
-                <Text style={styles.cardName}>{card.name}</Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Tarot Deck Preview</Text>
-        <Text style={styles.subtitle}>
-          Hi, your Tarot deck is ready!{'\n'}
-          This is the deck you'll be using for your future readings.
-        </Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Begin Your{'\n'}Tarot Journey</Text>
+        <Text style={styles.subtitle}>Your spiritual path awaits</Text>
+      </View>
 
-        <View style={styles.deckContainer}>
-          {cards.map((card, index) => renderCard(card, index))}
-        </View>
+      <View style={styles.centerContainer}>
+        <Animated.View 
+          style={[
+            styles.card,
+            {
+              transform: [{ scale: cardScale }],
+              opacity: cardOpacity,
+            }
+          ]}
+        >
+          <View style={styles.cardInner}>
+            <View style={styles.cardPattern}>
+              <View style={styles.patternOverlay} />
+            </View>
+          </View>
+        </Animated.View>
+      </View>
 
-        {selectedCard && (
-          <Text style={styles.selectedCardText}>
-            Selected: {selectedCard.name}
-          </Text>
-        )}
-
+      <Animated.View style={{ opacity: buttonOpacity }}>
         <TouchableOpacity
           style={styles.beginButton}
-          onPress={() => navigation.navigate('Chat')}
+          onPress={handleBeginJourney}
+          disabled={isRegistering}
         >
-          <Text style={styles.beginButtonText}>Begin Tarot Journey</Text>
+          <Text style={styles.beginButtonText}>
+            {isRegistering ? 'Creating Your Journey...' : 'Begin Tarot Journey'}
+          </Text>
+          {isRegistering && (
+            <ActivityIndicator color="white" style={styles.loader} />
+          )}
         </TouchableOpacity>
-      
-        {isRegistering && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#5C5CFF" />
-            <Text style={styles.loadingText}>Registering...</Text>
-          </View>
-        )}
-      </View>
+      </Animated.View>
     </SafeAreaView>
   );
 };
@@ -179,119 +119,75 @@ const TarotDeckScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: '#000',
   },
-  content: {
-    flex: 1,
-    padding: 20,
-    alignItems: 'center',
+  header: {
+    paddingTop: 50,
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 32,
     color: 'white',
-    textAlign: 'center',
-    marginTop: 20,
+    fontSize: 40,
     fontWeight: 'bold',
+    lineHeight: 48,
   },
   subtitle: {
+    color: '#666',
     fontSize: 16,
-    color: 'white',
-    textAlign: 'center',
     marginTop: 10,
-    marginBottom: 40,
   },
-  deckContainer: {
+  centerContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    width: '100%',
-    position: 'relative',
   },
   card: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    position: 'absolute',
-    borderRadius: 10,
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#333',
+    width: width * 0.6,
+    height: height * 0.4,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
   },
   cardInner: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 10,
-    overflow: 'hidden',
-    backgroundColor: '#1a1a1a',
+    flex: 1,
+    borderWidth: 2,
+    borderColor: '#B8860B',
+    borderRadius: 20,
+    padding: 2,
   },
   cardPattern: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
+    flex: 1,
     backgroundColor: '#1a1a1a',
-    borderWidth: 4,
-    borderColor: '#B8860B', // Dark golden color
-    opacity: 0.5,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#FFD700',
+  },
+  patternOverlay: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#FFD700',
+    opacity: 0.3,
+    backgroundColor: '#1a1a1a',
   },
   beginButton: {
-    width: '100%',
+    flexDirection: 'row',
+    width: '90%',
     height: 56,
     backgroundColor: '#5C5CFF',
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 40,
+    marginHorizontal: 20,
   },
   beginButtonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: '600',
+    marginRight: 10,
   },
-  selectedCard: {
-    borderColor: '#FFD700', // Bright gold for selected card
-    borderWidth: 6,
-    opacity: 0.8,
-  },
-  cardNameContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    padding: 8,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-  },
-  cardName: {
-    color: 'white',
-    fontSize: 14,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  selectedCardText: {
-    color: 'white',
-    fontSize: 16,
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  chatButton: {
-    backgroundColor: '#f4511e',
-    marginBottom: 20,
-    marginTop: 10,
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: 'white',
-    marginTop: 10,
-    fontSize: 16,
+  loader: {
+    marginLeft: 10,
   },
 });
 

@@ -12,8 +12,10 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { AntDesign } from '@expo/vector-icons';
 
+const defaultProfileImage = require('../assets/default-profile.png');
+
 const ProfilePictureScreen = ({ navigation, route }) => {
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState(defaultProfileImage);
   const [isLoading, setIsLoading] = useState(false);
 
   const pickImage = async () => {
@@ -53,21 +55,21 @@ const ProfilePictureScreen = ({ navigation, route }) => {
 
       <View style={styles.imageSection}>
         <TouchableOpacity onPress={pickImage} style={styles.imageContainer}>
-          {image ? (
+          {typeof image === 'string' ? (
             <Image source={{ uri: image }} style={styles.profileImage} />
           ) : (
-            <View style={styles.placeholderContainer}>
-              <AntDesign name="camerao" size={40} color="#666" />
-              <Text style={styles.placeholderText}>Tap to add photo</Text>
-            </View>
+            <Image source={image} style={styles.profileImage} />
           )}
+          <View style={styles.editBadge}>
+            <Text style={styles.editBadgeText}>Edit</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
       <TouchableOpacity
-        style={[styles.continueButton, !image && styles.disabledButton]}
+        style={[styles.continueButton]}
         onPress={handleContinue}
-        disabled={!image || isLoading}
+        disabled={isLoading}
       >
         {isLoading ? (
           <ActivityIndicator color="white" />
@@ -115,6 +117,7 @@ const styles = StyleSheet.create({
   profileImage: {
     width: '100%',
     height: '100%',
+    borderRadius: 100,
   },
   placeholderContainer: {
     flex: 1,
@@ -142,6 +145,19 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
+  },
+  editBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 2,
+    borderRadius: 10,
+  },
+  editBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 
