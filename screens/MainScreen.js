@@ -128,10 +128,16 @@ const MainScreen = ({ route, navigation }) => {
         >
           <Text style={styles.navIcon}>🔥</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
+        <TouchableOpacity 
+        style={styles.navItem}
+        onPress={() => navigation.navigate('MainScreen')}
+        >
           <Text style={styles.navIcon}>🔍</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => navigation.navigate('Settings')}
+        >
           <Text style={styles.navIcon}>✨</Text>
         </TouchableOpacity>
       </View>

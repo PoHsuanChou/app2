@@ -82,16 +82,17 @@ const BirthdayScreen = ({ navigation, route }) => {
   }, [selectedMonth, selectedDay]);
 
   const handleContinue = () => {
-    const birthdayData = {
+    // Create a date string from the selected values
+    const selectedDate = {
       month: selectedMonth,
       day: selectedDay,
       year: selectedYear,
-      zodiacSign
+      zodiacSign: zodiacSign
     };
 
-    navigation.navigate('TarotDeck', {
+    navigation.navigate('ProfilePicture', {
       ...route.params,
-      birthday: birthdayData
+      birthday: selectedDate
     });
   };
 

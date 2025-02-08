@@ -10,6 +10,7 @@ export const registerUser = async (userData) => {
       nickname: userData.nickname,
       gender: userData.gender,
       birthday: userData.birthday,
+      profileImage: userData.profileImage,
       selectedCard: userData.selectedCard,
     };
 
@@ -84,6 +85,35 @@ export const loginUser = async (email, password) => {
     return {
       success: false,
       message: error.message || 'Login failed'
+    };
+  }
+};
+
+export const updateUserProfile = async (updateData) => {
+  try {
+    const response = await fetch(`${BASE_URL}/api/users/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updateData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Update failed');
+    }
+
+    return {
+      success: true,
+      userData: data.user
+    };
+  } catch (error) {
+    console.error('Update Error:', error);
+    return {
+      success: false,
+      message: error.message || 'Update failed'
     };
   }
 }; 

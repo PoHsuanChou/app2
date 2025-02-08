@@ -10,6 +10,8 @@ import TarotDeckScreen from './screens/TarotDeckScreen';
 import ChatScreen from './screens/ChatScreen';
 import MainScreen from './screens/MainScreen';
 import TarotCardsScreen from './screens/TarotCardsScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import ProfilePictureScreen from './screens/ProfilePictureScreen';
 
 const Stack = createStackNavigator();
 
@@ -51,6 +53,7 @@ function App() {
         <Stack.Screen name="Nickname" component={NicknameScreen} />
         <Stack.Screen name="Gender" component={GenderScreen} />
         <Stack.Screen name="Birthday" component={BirthdayScreen} />
+        <Stack.Screen name="ProfilePicture" component={ProfilePictureScreen} />
         <Stack.Screen name="TarotDeck" component={TarotDeckScreen} />
         <Stack.Screen 
           name="Chat" 
@@ -78,6 +81,13 @@ function App() {
           options={{
             headerShown: false,
             presentation: 'modal'
+          }}
+        />
+        <Stack.Screen 
+          name="Settings" 
+          component={SettingsScreen}
+          options={{
+            headerShown: false,
           }}
         />
       </Stack.Navigator>
