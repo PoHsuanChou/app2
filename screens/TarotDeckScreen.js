@@ -9,10 +9,14 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { registerUser } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
+
+// Import your card image
+const cardImage = require('../assets/card-back.png'); // Update this path to match your asset location
 
 const TarotDeckScreen = ({ navigation, route }) => {
   const [isRegistering, setIsRegistering] = useState(false);
@@ -90,11 +94,11 @@ const TarotDeckScreen = ({ navigation, route }) => {
             }
           ]}
         >
-          <View style={styles.cardInner}>
-            <View style={styles.cardPattern}>
-              <View style={styles.patternOverlay} />
-            </View>
-          </View>
+          <Image 
+            source={cardImage}
+            style={styles.cardImage}
+            resizeMode="cover"
+          />
         </Animated.View>
       </View>
 
@@ -147,27 +151,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: 'transparent',
     overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  cardInner: {
-    flex: 1,
-    borderWidth: 2,
-    borderColor: '#B8860B',
+  cardImage: {
+    width: '100%',
+    height: '100%',
     borderRadius: 20,
-    padding: 2,
-  },
-  cardPattern: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#FFD700',
-  },
-  patternOverlay: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#FFD700',
-    opacity: 0.3,
-    backgroundColor: '#1a1a1a',
   },
   beginButton: {
     flexDirection: 'row',
