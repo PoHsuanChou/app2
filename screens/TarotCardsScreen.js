@@ -21,11 +21,11 @@ const TarotCardsScreen = ({ navigation }) => {
   const generateCardPositions = () => {
     const cards = [];
     const totalCards = 32;
-    const centerX = width / 2;
-    const centerY = height * 0.75; // Adjust centerY to move the arc lower
+    const centerX = width / 1;
+    const centerY = height * 0.45; // Adjust centerY to move the arc lower
     const radius = width * 0.7; // Adjust radius to control the arc size
-    const startAngle = -Math.PI * 0.3; // Adjust start angle for wider arc
-    const endAngle = Math.PI * 1.3; // Adjust end angle for wider arc
+    const startAngle = -Math.PI * 0.73; // Adjust start angle for wider arc
+    const endAngle = Math.PI * 1.2; // Adjust end angle for wider arc
     
     for (let i = 0; i < totalCards; i++) {
       const angle = startAngle + ((endAngle - startAngle) * i) / (totalCards - 1);
