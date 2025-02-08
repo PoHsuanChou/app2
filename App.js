@@ -13,6 +13,7 @@ import TarotCardsScreen from './screens/TarotCardsScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import ProfilePictureScreen from './screens/ProfilePictureScreen';
 import DatingScreen from './screens/DatingScreen';
+import CardRevealScreen from './screens/CardRevealScreen';
 
 const Stack = createStackNavigator();
 
@@ -94,6 +95,13 @@ function App() {
         <Stack.Screen 
           name="dating" 
           component={DatingScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="CardReveal" 
+          component={CardRevealScreen}
           options={{
             headerShown: false,
           }}
