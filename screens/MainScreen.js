@@ -1,4 +1,4 @@
-import React from 'react';
+import React,{ useState,useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,15 +15,15 @@ const { width } = Dimensions.get('window');
 const MainScreen = ({ route, navigation }) => {
   const { userData } = route.params || {};
 
-  // Placeholder data for matches and messages
-  const matches = [
+  // Fake data as a fallback
+  const fakeMatches = [
     { id: 'likes', count: 98, type: 'Likes' },
-    { id: '1', name: 'V', verified: true, image: require('../assets/placeholder.png') },
+    { id: '1', name: 'Vivi', verified: true, image: require('../assets/placeholder.png') },
     { id: '2', name: 'Luna', image: require('../assets/placeholder.png') },
     { id: '3', name: 'Donna', image: require('../assets/placeholder.png') },
   ];
 
-  const messages = [
+  const fakeMessages = [
     { 
       id: '1', 
       name: 'Kelly', 
@@ -48,7 +48,31 @@ const MainScreen = ({ route, navigation }) => {
       yourTurn: true 
     },
   ];
+  // State to manage whether to use real or fake data
+  const [useFakeData, setUseFakeData] = useState(true); // Change this to 'false' for real API calls
+  const [matches, setMatches] = useState([]);
+  const [messages, setMessages] = useState([]);
 
+  useEffect(() => {
+    if (!useFakeData) {
+      // Real API Request
+      axios.get('https://your-api-endpoint.com/matches') // Replace with your actual API endpoint
+        .then((response) => {
+          // Assuming response data contains 'matches' and 'messages'
+          setMatches(response.data.matches);
+          setMessages(response.data.messages);
+        })
+        .catch((error) => {
+          console.error("Error fetching real data: ", error);
+        });
+    } else {
+      // Fake data as fallback
+      setMatches(fakeMatches);
+      setMessages(fakeMessages);
+    }
+  }, [useFakeData]); // Dependency array to re-fetch data when `useFakeData` changes
+
+  
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
