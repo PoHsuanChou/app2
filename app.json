@@ -13,16 +13,31 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.paulchou417.app2"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.paulchou417.app2"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.776267765563-qqr5df6oibl0cpmh5ca6rk948245k20r"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "66bde964-8327-497e-87b2-b376e328ee06"
+      }
     }
   }
 }
