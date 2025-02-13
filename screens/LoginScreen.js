@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
-// Import icons - you'll need to install @expo/vector-icons or react-native-vector-icons
 import { AntDesign } from '@expo/vector-icons';
-// import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { loginUser } from '../services/api'; // Import loginUser
+import {
+  GoogleSignin,
+  GoogleSigninButton,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+
+GoogleSignin.configure({
+  webClientId: '776267765563-f9rjs6jav75c50mvsdupk9d5s8qrqel8.apps.googleusercontent.com', 
+  scopes: ['https://www.googleapis.com/auth/drive.readonly'], 
+  offlineAccess: true, 
+  forceCodeForRefreshToken: false, 
+  iosClientId: '776267765563-qqr5df6oibl0cpmh5ca6rk948245k20r.apps.googleusercontent.com',
+});
+
+
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -11,16 +24,72 @@ const LoginScreen = ({ navigation }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-//   const handleGoogleSignIn = async () => {
-//     try {
-//       await GoogleSignin.hasPlayServices();
-//       const userInfo = await GoogleSignin.signIn();
-//       // Handle sign-in success
-//       console.log(userInfo);
-//     } catch (error) {
-//       console.error(error);
-//     }
-//   };
+// Frontend implementation
+const handleGoogleSignIn = async () => {
+  try {
+    // Check if Google Play Services are available
+    await GoogleSignin.hasPlayServices();
+    console.log('Google Play Services available');
+
+    // Attempt to sign in
+    const response = await GoogleSignin.signIn();
+    console.log('Google Sign-in response:', response.data.idToken);
+
+    if (response?.data.idToken) {
+      // Send ID Token to backend with proper error handling
+      try {
+        console.log('Sending ID Token to backend:', response.data.idToken);
+        const backendResponse = await fetch('http://localhost:8080/api/auth/google', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            idToken: response.data.idToken 
+          }),
+        });
+
+        // Log the full response for debugging
+        console.log('Backend status:', backendResponse.status);
+        const responseText = await backendResponse.text();
+        console.log('Backend raw response:', responseText);
+
+        // Try to parse JSON only if we have content
+        let data;
+        try {
+          data = responseText ? JSON.parse(responseText) : null;
+        } catch (e) {
+          console.error('JSON parsing error:', e);
+          throw new Error('Invalid response format from server');
+        }
+
+        if (!backendResponse.ok) {
+          throw new Error(`Server error: ${data?.message || backendResponse.statusText}`);
+        }
+
+        console.log('Backend parsed response:', data);
+
+        if (data?.success) {
+          setState({ userInfo: data.user });
+        } else {
+          throw new Error(data?.message || 'Authentication failed');
+        }
+      } catch (error) {
+        console.error('Backend communication error:', error);
+        // Handle the error appropriately in your UI
+        throw error;
+      }
+    }
+  } catch (error) {
+    console.error('Google Sign-in error:', error);
+    // Handle sign-in errors appropriately
+  }
+};
+
+  const isSuccessResponse = (response) => {
+    return response && response.type === 'success' && response.data && response.data.idToken;
+  };
+
 
   const handleEmailContinue = async () => {
     if (!email || !password) {
@@ -140,7 +209,7 @@ const LoginScreen = ({ navigation }) => {
           <Text style={styles.socialButtonText}>Continue with Apple</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
+        <TouchableOpacity style={[styles.socialButton, styles.googleButton]} onPress={handleGoogleSignIn}>
           <AntDesign name="google" size={24} color="black" />
           <Text style={[styles.socialButtonText, styles.googleText]}>Continue with Google</Text>
         </TouchableOpacity>
