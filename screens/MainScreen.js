@@ -72,7 +72,15 @@ const MainScreen = ({ route, navigation }) => {
     }
   }, [useFakeData]); // Dependency array to re-fetch data when `useFakeData` changes
 
-  
+  // 添加測試用的假資料
+  const testChatData = {
+    id: 'test123',
+    name: 'Test User',
+    image: require('../assets/placeholder.png'),
+    verified: true,
+    message: 'Hello! This is a test chat.',
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -85,7 +93,17 @@ const MainScreen = ({ route, navigation }) => {
           <Text style={styles.sectionTitle}>New Matches</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {matches.map((match) => (
-              <TouchableOpacity key={match.id} style={styles.matchCard}>
+              <TouchableOpacity 
+                key={match.id} 
+                style={styles.matchCard}
+                onPress={() => {
+                  if (match.type !== 'Likes') {
+                    navigation.navigate('MatchChat', {
+                      matchData: match
+                    });
+                  }
+                }}
+              >
                 {match.type === 'Likes' ? (
                   <View style={styles.likesCard}>
                     <Text style={styles.likesCount}>{match.count}</Text>
@@ -113,7 +131,13 @@ const MainScreen = ({ route, navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Messages</Text>
           {messages.map((message) => (
-            <TouchableOpacity key={message.id} style={styles.messageCard}>
+            <TouchableOpacity 
+              key={message.id} 
+              style={styles.messageCard}
+              onPress={() => navigation.navigate('MatchChat', {
+                matchData: message
+              })}
+            >
               <Image source={message.image} style={styles.messageImage} />
               <View style={styles.messageContent}>
                 <View style={styles.messageHeader}>
@@ -153,8 +177,8 @@ const MainScreen = ({ route, navigation }) => {
           <Text style={styles.navIcon}>🔥</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-        style={styles.navItem}
-        onPress={() => navigation.navigate('dating')}
+          style={styles.navItem}
+          onPress={() => navigation.navigate('dating')}
         >
           <Text style={styles.navIcon}>🔍</Text>
         </TouchableOpacity>
@@ -163,6 +187,15 @@ const MainScreen = ({ route, navigation }) => {
           onPress={() => navigation.navigate('Settings')}
         >
           <Text style={styles.navIcon}>✨</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => navigation.navigate('Chat', {
+            matchData: testChatData,
+            userData: userData || { id: 'currentUser', name: 'Current User' }
+          })}
+        >
+          <Text style={styles.navIcon}>💬</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

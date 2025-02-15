@@ -16,6 +16,7 @@ const ChatScreen = ({ navigation, route }) => {
   // 假設這些值從路由參數或登入狀態獲取
   const currentUser = route.params?.currentUser || 'user1';
   const chattingWith = route.params?.chattingWith || 'user2';
+  const { matchData, userData } = route.params;
 
   useEffect(() => {
     connectWebSocket();
@@ -149,6 +150,10 @@ const ChatScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.text}>Chat with {matchData.name}</Text>
+        <Text style={styles.text}>Your name: {userData?.name || 'User'}</Text>
+      </View>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
@@ -190,7 +195,18 @@ const ChatScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: 'black',
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  text: {
+    color: 'white',
+    fontSize: 18,
+    marginBottom: 10,
   },
   messageList: {
     padding: 15,

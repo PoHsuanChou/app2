@@ -7,6 +7,7 @@ import {
   GoogleSigninButton,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 GoogleSignin.configure({
   webClientId: '776267765563-f9rjs6jav75c50mvsdupk9d5s8qrqel8.apps.googleusercontent.com', 
@@ -27,16 +28,13 @@ const LoginScreen = ({ navigation }) => {
 // Frontend implementation
 const handleGoogleSignIn = async () => {
   try {
-    // Check if Google Play Services are available
     await GoogleSignin.hasPlayServices();
     console.log('Google Play Services available');
 
-    // Attempt to sign in
     const response = await GoogleSignin.signIn();
     console.log('Google Sign-in response:', response.data.idToken);
 
     if (response?.data.idToken) {
-      // Send ID Token to backend with proper error handling
       try {
         console.log('Sending ID Token to backend:', response.data.idToken);
         const backendResponse = await fetch('http://localhost:8080/api/auth/google', {
@@ -49,12 +47,10 @@ const handleGoogleSignIn = async () => {
           }),
         });
 
-        // Log the full response for debugging
         console.log('Backend status:', backendResponse.status);
         const responseText = await backendResponse.text();
         console.log('Backend raw response:', responseText);
 
-        // Try to parse JSON only if we have content
         let data;
         try {
           data = responseText ? JSON.parse(responseText) : null;
@@ -70,19 +66,30 @@ const handleGoogleSignIn = async () => {
         console.log('Backend parsed response:', data);
 
         if (data?.success) {
-          setState({ userInfo: data.user });
+          if (data.message === '01') {
+            navigation.navigate('NicknameScreen', {
+              token: data.token,
+              user: data.user,
+              isGoogleUser: true
+            });
+          } else if (data.message === '02') {
+            await AsyncStorage.setItem('userToken', data.token);
+            navigation.navigate('MainScreen', {
+              userData: data.user,
+              token: data.token
+            });
+          }
         } else {
           throw new Error(data?.message || 'Authentication failed');
         }
       } catch (error) {
         console.error('Backend communication error:', error);
-        // Handle the error appropriately in your UI
-        throw error;
+        Alert.alert('Error', error.message || 'Authentication failed');
       }
     }
   } catch (error) {
     console.error('Google Sign-in error:', error);
-    // Handle sign-in errors appropriately
+    Alert.alert('Error', 'Google sign-in failed. Please try again.');
   }
 };
 

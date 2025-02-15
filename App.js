@@ -14,6 +14,9 @@ import SettingsScreen from './screens/SettingsScreen';
 import ProfilePictureScreen from './screens/ProfilePictureScreen';
 import DatingScreen from './screens/DatingScreen';
 import CardRevealScreen from './screens/CardRevealScreen';
+import MatchChatScreen from './screens/MatchChatScreen';
+import InterestsScreen from './screens/InterestsScreen';
+import UserProfileScreen from './screens/UserProfileScreen';
 
 const Stack = createStackNavigator();
 
@@ -104,6 +107,27 @@ function App() {
           component={CardRevealScreen}
           options={{
             headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="MatchChat" 
+          component={MatchChatScreen}
+          options={{
+            headerShown: true,
+            title: "",  // 我們會動態設置標題
+            headerStyle: {
+              backgroundColor: '#1C1C1E',
+            },
+            headerTintColor: '#fff',
+          }}
+        />
+        <Stack.Screen name="Interests" component={InterestsScreen} />
+        <Stack.Screen 
+          name="UserProfile" 
+          component={UserProfileScreen}
+          options={{
+            headerShown: false,
+            presentation: 'modal'
           }}
         />
       </Stack.Navigator>
