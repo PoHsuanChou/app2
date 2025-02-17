@@ -18,6 +18,8 @@ const ProfilePictureScreen = ({ navigation, route }) => {
   const [image, setImage] = useState(defaultProfileImage);
   const [isLoading, setIsLoading] = useState(false);
 
+  console.log('ProfilePictureScreen route.params:', route.params);
+
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -41,11 +43,15 @@ const ProfilePictureScreen = ({ navigation, route }) => {
       return;
     }
 
-    // Pass all collected user data to the next screen
-    navigation.navigate('TarotDeck', {
-      ...route.params,
+    const registrationData = {
+      ...route.params,  // includes email, password, isGoogleLogin, nickname, bio, gender, birthday
       profileImage: image
-    });
+    };
+    
+    console.log('registrationData:', registrationData);
+
+    // Navigate to Interests screen instead of TarotDeck
+    navigation.navigate('Interests', registrationData);
   };
 
   return (

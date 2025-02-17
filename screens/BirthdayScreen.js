@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, Dimensions, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 
 const { width } = Dimensions.get('window');
@@ -9,6 +9,8 @@ const BirthdayScreen = ({ navigation, route }) => {
   const [selectedDay, setSelectedDay] = useState('1');
   const [selectedYear, setSelectedYear] = useState('2000');
   const [zodiacSign, setZodiacSign] = useState('');
+  const [birthday, setBirthday] = useState(null);
+  const { email, password, isGoogleLogin, nickname, bio, gender } = route.params;
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -76,23 +78,61 @@ const BirthdayScreen = ({ navigation, route }) => {
     }
   };
 
+  // 更新月份时同时更新生日
+  const handleMonthChange = (month) => {
+    setSelectedMonth(month);
+    updateBirthday(month, selectedDay, selectedYear);
+  };
+
+  // 更新日期时同时更新生日
+  const handleDayChange = (day) => {
+    setSelectedDay(day);
+    updateBirthday(selectedMonth, day, selectedYear);
+  };
+
+  // 更新年份时同时更新生日
+  const handleYearChange = (year) => {
+    setSelectedYear(year);
+    updateBirthday(selectedMonth, selectedDay, year);
+  };
+
+  // 更新生日对象
+  const updateBirthday = (month, day, year) => {
+    const newZodiacSign = getZodiacSign(month, day);
+    setZodiacSign(newZodiacSign);
+    setBirthday({
+      month,
+      day,
+      year,
+      zodiacSign: newZodiacSign
+    });
+  };
+
+  // 保持星座动画效果
   useEffect(() => {
     const newZodiacSign = getZodiacSign(selectedMonth, selectedDay);
     setZodiacSign(newZodiacSign);
   }, [selectedMonth, selectedDay]);
 
+  // 在组件加载时设置初始生日
+  useEffect(() => {
+    updateBirthday(selectedMonth, selectedDay, selectedYear);
+  }, []);
+
   const handleContinue = () => {
-    // Create a date string from the selected values
-    const selectedDate = {
-      month: selectedMonth,
-      day: selectedDay,
-      year: selectedYear,
-      zodiacSign: zodiacSign
-    };
+    if (!birthday) {
+      Alert.alert('提示', '請選擇生日');
+      return;
+    }
 
     navigation.navigate('ProfilePicture', {
-      ...route.params,
-      birthday: selectedDate
+      email,
+      password,
+      isGoogleLogin,
+      nickname,
+      bio,
+      gender,
+      birthday
     });
   };
 
@@ -118,7 +158,7 @@ const BirthdayScreen = ({ navigation, route }) => {
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={selectedMonth}
-              onValueChange={setSelectedMonth}
+              onValueChange={handleMonthChange}
               style={styles.picker}
               itemStyle={styles.pickerItem}
             >
@@ -129,7 +169,7 @@ const BirthdayScreen = ({ navigation, route }) => {
 
             <Picker
               selectedValue={selectedDay}
-              onValueChange={setSelectedDay}
+              onValueChange={handleDayChange}
               style={styles.picker}
               itemStyle={styles.pickerItem}
             >
@@ -140,7 +180,7 @@ const BirthdayScreen = ({ navigation, route }) => {
 
             <Picker
               selectedValue={selectedYear}
-              onValueChange={setSelectedYear}
+              onValueChange={handleYearChange}
               style={styles.picker}
               itemStyle={styles.pickerItem}
             >

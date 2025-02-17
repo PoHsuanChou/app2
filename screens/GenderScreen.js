@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Alert } from 'react-native';
 
 const GenderScreen = ({ navigation, route }) => {
-  const [selectedGender, setSelectedGender] = useState(null);
+  const [gender, setGender] = useState('');
+  const { email, password, isGoogleLogin, nickname, bio } = route.params;
 
   const genderOptions = [
     'Female',
@@ -11,11 +12,15 @@ const GenderScreen = ({ navigation, route }) => {
     'Prefer not to say'
   ];
 
-  const handleGenderSelect = (gender) => {
-    setSelectedGender(gender);
+  const handleGenderSelect = (selectedGender) => {
+    setGender(selectedGender);
     navigation.navigate('Birthday', {
-      ...route.params,
-      gender: gender
+      email,
+      password,
+      isGoogleLogin,
+      nickname,
+      bio,
+      gender: selectedGender
     });
   };
 
@@ -24,16 +29,16 @@ const GenderScreen = ({ navigation, route }) => {
       <View style={styles.content}>
         <Text style={styles.title}>Your Gender</Text>
 
-        {genderOptions.map((gender, index) => (
+        {genderOptions.map((option, index) => (
           <TouchableOpacity
             key={index}
             style={[
               styles.genderButton,
-              selectedGender === gender && styles.selectedButton
+              gender === option && styles.selectedButton
             ]}
-            onPress={() => handleGenderSelect(gender)}
+            onPress={() => handleGenderSelect(option)}
           >
-            <Text style={styles.genderText}>{gender}</Text>
+            <Text style={styles.genderText}>{option}</Text>
           </TouchableOpacity>
         ))}
 
@@ -88,6 +93,15 @@ const styles = StyleSheet.create({
     left: 20,
   },
   backButtonText: {
+    color: '#666',
+    fontSize: 18,
+  },
+  continueButton: {
+    position: 'absolute',
+    bottom: 40,
+    right: 20,
+  },
+  continueButtonText: {
     color: '#666',
     fontSize: 18,
   },

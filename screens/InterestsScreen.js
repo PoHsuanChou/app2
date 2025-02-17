@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const InterestsScreen = ({ navigation, route }) => {
   const [selectedInterests, setSelectedInterests] = useState([]);
+  const registrationData = route.params;
   
   const interests = [
     '塔羅牌', '占星術', '冥想', '瑜伽',
@@ -29,13 +31,15 @@ const InterestsScreen = ({ navigation, route }) => {
   };
 
   const handleContinue = () => {
-    if (selectedInterests.length > 0) {
-      const userData = {
-        ...route.params,
-        interests: selectedInterests
-      };
-      navigation.navigate('ProfilePicture', userData);
+    if (selectedInterests.length < 3) {
+      Alert.alert('提示', '請至少選擇3個興趣');
+      return;
     }
+
+    navigation.navigate('TarotDeck', {
+      ...registrationData,
+      interests: selectedInterests
+    });
   };
 
   return (

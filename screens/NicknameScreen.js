@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 const NicknameScreen = ({ navigation, route }) => {
   const [nickname, setNickname] = useState('');
   const [bio, setBio] = useState('');
-  const { email, password, isGoogleUser, token, user } = route.params || {};
+  const { email, password, isGoogleLogin} = route.params;
 
   const handleContinue = () => {
     if (!nickname.trim()) {
@@ -23,17 +23,13 @@ const NicknameScreen = ({ navigation, route }) => {
       return;
     }
 
-    const userData = {
-      ...user,
+    navigation.navigate('Gender', {
       email,
       password,
+      isGoogleLogin,
       nickname,
-      bio: bio.trim(),
-      token,
-      isGoogleUser,
-    };
-
-    navigation.navigate('Interests', userData);
+      bio: bio.trim()
+    });
   };
 
   return (

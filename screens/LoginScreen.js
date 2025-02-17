@@ -66,11 +66,11 @@ const handleGoogleSignIn = async () => {
         console.log('Backend parsed response:', data);
 
         if (data?.success) {
+          console.log('data:', data);
           if (data.message === '01') {
-            navigation.navigate('NicknameScreen', {
-              token: data.token,
-              user: data.user,
-              isGoogleUser: true
+            navigation.navigate('Nickname', { 
+              email: data.email,
+              isGoogleLogin: data.google,
             });
           } else if (data.message === '02') {
             await AsyncStorage.setItem('userToken', data.token);
@@ -118,10 +118,11 @@ const handleGoogleSignIn = async () => {
       setIsLoading(true);
       
       if (isSignUp) {
-        // If signing up, proceed to nickname screen
         navigation.navigate('Nickname', { 
-          email,
-          password
+          email: email,
+          password: password,
+          isGoogleLogin: false,
+          fromGoogle: false
         });
       } else {
         // If logging in, attempt login
