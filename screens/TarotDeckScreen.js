@@ -12,6 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { registerUser } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,23 +28,21 @@ const TarotDeckScreen = ({ navigation, route }) => {
   const buttonOpacity = new Animated.Value(1);
 
   const flipCard = () => {
-    if (!isFlipped) {
-      Animated.sequence([
-        // First flip the card
-        Animated.spring(cardScale, {
-          toValue: 0,
-          friction: 8,
-          tension: 10,
-          useNativeDriver: true,
-        }),
-        // Then fade in the message
-        Animated.timing(messageOpacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        })
-      ]).start(() => setIsFlipped(true));
-    }
+    Animated.sequence([
+      // First flip the card
+      Animated.spring(cardScale, {
+        toValue: 0,
+        friction: 8,
+        tension: 10,
+        useNativeDriver: true,
+      }),
+      // Then fade in the message
+      Animated.timing(messageOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      })
+    ]).start(() => setIsFlipped(true));
   };
 
   useEffect(() => {
@@ -77,14 +76,68 @@ const TarotDeckScreen = ({ navigation, route }) => {
 
     try {
       setIsRegistering(true);
-      const response = await registerUser(route.params);
-      // Directly navigate to Main screen
-      navigation.navigate('Main', { 
-        userData: response.userData,
+      
+      // 将生日转换为 Java 后端可接收的时间戳格式
+      const formatBirthday = (birthdayData) => {
+        const monthNames = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        const monthIndex = monthNames.indexOf(birthdayData.month);
+        const day = parseInt(birthdayData.day);
+        const year = parseInt(birthdayData.year);
+
+        // 创建 Date 对象并设置为当天开始时间 (UTC)
+        const date = new Date(Date.UTC(year, monthIndex, day, 0, 0, 0));
+        
+        // 返回 ISO 字符串，Spring Boot 可以直接解析
+        return date.toISOString();
+      };
+
+      // 准备注册数据
+      const registrationData = {
+        email: route.params.email,
+        password: route.params.password,
+        nickname: route.params.nickname,
+        bio: route.params.bio,
+        gender: route.params.gender,
+        birthday: formatBirthday(route.params.birthday),  // 将返回 ISO 格式的日期字符串
+        zodiacSign: route.params.birthday.zodiacSign,
+        profileImage: route.params.profileImage,
+        interests: route.params.interests,
+        isGoogleLogin: route.params.isGoogleLogin
+      };
+
+      console.log('Sending registration data:', registrationData);
+
+      // 发送注册请求
+      const response = await fetch('http://localhost:8080/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData)
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      // 如果注册成功，保存token并导航到主屏幕
+      if (data.token) {
+        await AsyncStorage.setItem('userToken', data.token);
+      }
+
+      navigation.navigate('Main', { 
+        userData: data.user,
+        token: data.token
+      });
+
     } catch (error) {
       console.error('Error registering user:', error);
-      Alert.alert('Error', 'Failed to complete registration');
+      Alert.alert('Error', error.message || 'Failed to complete registration');
     } finally {
       setIsRegistering(false);
     }
@@ -98,13 +151,17 @@ const TarotDeckScreen = ({ navigation, route }) => {
       </View>
 
       <View style={styles.centerContainer}>
-        <TouchableOpacity onPress={flipCard} activeOpacity={1}>
+        <TouchableOpacity 
+          onPress={flipCard}
+          activeOpacity={1}
+          disabled={isFlipped}
+        >
           <Animated.View
             style={[
               styles.cardContainer,
               {
                 transform: [{ scale: cardScale }],
-                opacity: cardScale, // Link opacity to scale
+                opacity: cardScale,
               },
             ]}
           >
@@ -131,12 +188,16 @@ const TarotDeckScreen = ({ navigation, route }) => {
 
       <Animated.View style={{ opacity: buttonOpacity }}>
         <TouchableOpacity
-          style={styles.beginButton}
+          style={[
+            styles.beginButton,
+            !isFlipped && styles.beginButtonInitial
+          ]}
           onPress={handleBeginJourney}
-          disabled={isRegistering || !isFlipped}
+          disabled={isRegistering}
         >
           <Text style={styles.beginButtonText}>
-            {isRegistering ? 'Creating Your Journey...' : 'Begin Journey'}
+            {isRegistering ? 'Creating Your Journey...' : 
+             isFlipped ? 'Begin Journey' : 'Tap to Reveal'}
           </Text>
           {isRegistering && (
             <ActivityIndicator color="white" style={styles.loader} />
@@ -216,6 +277,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
     marginHorizontal: 20,
+  },
+  beginButtonInitial: {
+    backgroundColor: '#4A4A4A',
   },
   beginButtonText: {
     color: 'white',
