@@ -97,6 +97,24 @@ const handleGoogleSignIn = async () => {
     return response && response.type === 'success' && response.data && response.data.idToken;
   };
 
+  // 添加检查邮箱的函数
+  const checkEmailExists = async (email) => {
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/check-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Email check error:', error);
+      throw error;
+    }
+  };
 
   const handleEmailContinue = async () => {
     if (!email || !password) {
@@ -118,19 +136,26 @@ const handleGoogleSignIn = async () => {
       setIsLoading(true);
       
       if (isSignUp) {
+        // 检查邮箱是否已注册
+        const emailCheckResponse = await checkEmailExists(email);
+        
+        if (emailCheckResponse.exists) {
+          Alert.alert('Error', 'Email already registered. Please use a different email or login.');
+          return;
+        }
+
+        // 如果邮箱未注册，继续注册流程
         navigation.navigate('Nickname', { 
           email: email,
           password: password,
-          isGoogleLogin: false,
-          fromGoogle: false
+          isGoogleLogin: false
         });
       } else {
-        // If logging in, attempt login
+        // 登录逻辑保持不变
         const response = await loginUser(email, password);
         console.log('Login response:', response);
         
         if (response.success) {
-          // If login successful, navigate to tarot deck
           navigation.navigate('TarotDeck', { 
             userData: response.userData 
           });
