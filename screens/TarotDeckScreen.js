@@ -97,11 +97,11 @@ const TarotDeckScreen = ({ navigation, route }) => {
       // 准备注册数据
       const registrationData = {
         email: route.params.email,
-        password: route.params.password,
+        password: route.params.password || null,
         nickname: route.params.nickname,
         bio: route.params.bio,
         gender: route.params.gender,
-        birthday: formatBirthday(route.params.birthday),  // 将返回 ISO 格式的日期字符串
+        birthday: formatBirthday(route.params.birthday),
         zodiacSign: route.params.birthday.zodiacSign,
         profileImage: route.params.profileImage,
         interests: route.params.interests,
@@ -120,20 +120,29 @@ const TarotDeckScreen = ({ navigation, route }) => {
       });
 
       const data = await response.json();
+      console.log('gggggg:', data);
 
       if (!response.ok) {
         throw new Error(data.message || 'Registration failed');
       }
 
-      // 如果注册成功，保存token并导航到主屏幕
-      if (data.token) {
-        await AsyncStorage.setItem('userToken', data.token);
-      }
+      // 检查响应是否成功
+      if (data.success) {
+        // 保存 token
+        if (data.token) {
+          await AsyncStorage.setItem('userToken', data.token);
+        }
 
-      navigation.navigate('Main', { 
-        userData: data.user,
-        token: data.token
-      });
+        // 导航到主页面
+        navigation.navigate('Main', { 
+          userData: data.user,
+          token: data.token,
+          isGoogle: data.isGoogle,
+          email: data.email
+        });
+      } else {
+        throw new Error(data.message || 'Registration failed');
+      }
 
     } catch (error) {
       console.error('Error registering user:', error);
