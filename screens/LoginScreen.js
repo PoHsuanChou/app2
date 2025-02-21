@@ -74,7 +74,7 @@ const handleGoogleSignIn = async () => {
             });
           } else if (data.message === '02') {
             await AsyncStorage.setItem('userToken', data.token);
-            navigation.navigate('MainScreen', {
+            navigation.navigate('Main', {
               userData: data.user,
               token: data.token
             });
@@ -156,7 +156,8 @@ const handleGoogleSignIn = async () => {
         console.log('Login response:', response);
         
         if (response.success) {
-          navigation.navigate('TarotDeck', { 
+          await AsyncStorage.setItem('userToken', response.token);
+          navigation.navigate('Main', { 
             userData: response.userData 
           });
         } else {

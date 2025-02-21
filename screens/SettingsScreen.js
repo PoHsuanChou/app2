@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { updateUserProfile } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SettingsScreen = ({ navigation, route }) => {
   const [profileImage, setProfileImage] = useState(null);
@@ -69,6 +70,36 @@ const SettingsScreen = ({ navigation, route }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "確認登出",
+      "您確定要登出嗎？",
+      [
+        {
+          text: "取消",
+          style: "cancel"
+        },
+        {
+          text: "確定",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // 清除所有儲存的用戶資料
+              await AsyncStorage.clear();
+              // 導航到登入畫面
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              Alert.alert('錯誤', '登出時發生錯誤');
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -143,9 +174,9 @@ const SettingsScreen = ({ navigation, route }) => {
         {/* Logout Button */}
         <TouchableOpacity 
           style={styles.logoutButton}
-          onPress={() => navigation.navigate('Login')}
+          onPress={handleLogout}
         >
-          <Text style={styles.logoutButtonText}>Logout</Text>
+          <Text style={styles.logoutButtonText}>登出</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

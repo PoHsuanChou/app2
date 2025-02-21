@@ -9,12 +9,19 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchMatchesAndMessages } from '../services/api';
 const { width } = Dimensions.get('window');
+
+const EmptyMatches = () => (
+  <View style={styles.emptyContainer}>
+    <Text style={styles.emptyText}>No matches yet</Text>
+    <Text style={styles.emptySubText}>Start swiping to find your matches!</Text>
+  </View>
+);
 
 const MainScreen = ({ route, navigation }) => {
   const { userData } = route.params || {};
-
   // Fake data as a fallback
   const fakeMatches = [
     { id: 'likes', count: 98, type: 'Likes' },
@@ -27,49 +34,64 @@ const MainScreen = ({ route, navigation }) => {
     { 
       id: '1', 
       name: 'Kelly', 
-      status: 'LIKES YOU',
       message: 'Recently active, match now!',
       image: require('../assets/placeholder.png'),
-      active: true 
+      email: 'test@test.com'
+
     },
     { 
       id: '2', 
       name: 'Ann', 
-      verified: true,
       message: 'Hello Ann',
-      image: require('../assets/placeholder.png') 
+      image: require('../assets/placeholder.png'),
+      email: 'test@test.com'
     },
     { 
       id: '3', 
       name: 'R', 
       message: 'Heyyyy',
-      label: 'Short-term fun',
       image: require('../assets/placeholder.png'),
+      email: 'test@test.com',
       yourTurn: true 
     },
   ];
   // State to manage whether to use real or fake data
-  const [useFakeData, setUseFakeData] = useState(true); // Change this to 'false' for real API calls
+  const [useFakeData, setUseFakeData] = useState(false); // Change this to 'false' for real API calls
   const [matches, setMatches] = useState([]);
   const [messages, setMessages] = useState([]);
 
   useEffect(() => {
-    if (!useFakeData) {
-      // Real API Request
-      axios.get('https://your-api-endpoint.com/matches') // Replace with your actual API endpoint
-        .then((response) => {
-          // Assuming response data contains 'matches' and 'messages'
-          setMatches(response.data.matches);
-          setMessages(response.data.messages);
-        })
-        .catch((error) => {
-          console.error("Error fetching real data: ", error);
-        });
-    } else {
-      // Fake data as fallback
-      setMatches(fakeMatches);
-      setMessages(fakeMessages);
-    }
+    const fetchData = async () => {
+      if (!useFakeData) {
+        try {
+          const { matches, messages } = await fetchMatchesAndMessages();
+          console.log('Matches:', matches);
+          console.log('Messages:', messages);
+          
+          // Transform matches data
+          const transformedMatches = matches.map(match => ({
+            id: match.id,
+            name: match.name || 'Anonymous',
+            image: match.image ? { uri: `https://api.quin.world/uploads/${match.image}` } : require('../assets/placeholder.png'),
+            count: match.count,
+            type: match.id === 'likes' ? 'Likes' : undefined
+          }));
+          
+          setMatches(transformedMatches);
+          setMessages(messages);
+        } catch (error) {
+          console.error("Error fetching data: ", error);
+          // Fallback to fake data on error
+          setMatches(fakeMatches);
+          setMessages(fakeMessages);
+        }
+      } else {
+        setMatches(fakeMatches);
+        setMessages(fakeMessages);
+      }
+    };
+
+    fetchData();
   }, [useFakeData]); // Dependency array to re-fetch data when `useFakeData` changes
 
   // 添加測試用的假資料
@@ -91,80 +113,93 @@ const MainScreen = ({ route, navigation }) => {
         {/* New Matches Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>New Matches</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {matches.map((match) => (
-              <TouchableOpacity 
-                key={match.id} 
-                style={styles.matchCard}
-                onPress={() => {
-                  if (match.type !== 'Likes') {
-                    navigation.navigate('MatchChat', {
-                      matchData: match
-                    });
-                  }
-                }}
-              >
-                {match.type === 'Likes' ? (
-                  <View style={styles.likesCard}>
-                    <Text style={styles.likesCount}>{match.count}</Text>
-                    <Text style={styles.likesText}>Likes</Text>
-                  </View>
-                ) : (
-                  <>
-                    <Image source={match.image} style={styles.matchImage} />
-                    <View style={styles.matchInfo}>
-                      <Text style={styles.matchName}>{match.name}</Text>
-                      {match.verified && (
-                        <View style={styles.verifiedBadge}>
-                          <Text style={styles.verifiedText}>✓</Text>
-                        </View>
-                      )}
+          {matches.length > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {matches.map((match) => (
+                <TouchableOpacity 
+                  key={match.id} 
+                  style={styles.matchCard}
+                  onPress={() => {
+                    if (match.type !== 'Likes') {
+                      navigation.navigate('MatchChat', {
+                        matchData: match
+                      });
+                    }
+                  }}
+                >
+                  {match.id === 'likes' ? (
+                    <View style={styles.likesCard}>
+                      <Text style={styles.likesCount}>{match.count}</Text>
+                      <Text style={styles.likesText}>Likes</Text>
                     </View>
-                  </>
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+                  ) : (
+                    <>
+                      <Image source={match.image} style={styles.matchImage} />
+                      <View style={styles.matchInfo}>
+                        <Text style={styles.matchName}>
+                          {match.name.includes('@') ? match.name.split('@')[0] : match.name}
+                        </Text>
+                        {match.verified && (
+                          <View style={styles.verifiedBadge}>
+                            <Text style={styles.verifiedText}>✓</Text>
+                          </View>
+                        )}
+                      </View>
+                    </>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <EmptyMatches />
+          )}
         </View>
 
         {/* Messages Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Messages</Text>
-          {messages.map((message) => (
-            <TouchableOpacity 
-              key={message.id} 
-              style={styles.messageCard}
-              onPress={() => navigation.navigate('MatchChat', {
-                matchData: message
-              })}
-            >
-              <Image source={message.image} style={styles.messageImage} />
-              <View style={styles.messageContent}>
-                <View style={styles.messageHeader}>
-                  <Text style={styles.messageName}>{message.name}</Text>
-                  {message.verified && (
-                    <View style={styles.verifiedBadge}>
-                      <Text style={styles.verifiedText}>✓</Text>
-                    </View>
+          {messages.length > 0 ? (
+            messages.map((message) => (
+              <TouchableOpacity 
+                key={message.id} 
+                style={styles.messageCard}
+                onPress={() => navigation.navigate('MatchChat', {
+                  matchData: message
+                })}
+              >
+                <Image source={message.image} style={styles.messageImage} />
+                <View style={styles.messageContent}>
+                  <View style={styles.messageHeader}>
+                    <Text style={styles.messageName}>{message.name}</Text>
+                    {/* {message.verified && (
+                      <View style={styles.verifiedBadge}>
+                        <Text style={styles.verifiedText}>✓</Text>
+                      </View>
+                    )} */}
+                    {/* {message.status && (
+                      <View style={styles.statusBadge}>
+                        <Text style={styles.statusText}>{message.status}</Text>
+                      </View>
+                    )} */}
+                  </View>
+                  {message.label && (
+                    <Text style={styles.messageLabel}>In {message.label}</Text>
                   )}
-                  {message.status && (
-                    <View style={styles.statusBadge}>
-                      <Text style={styles.statusText}>{message.status}</Text>
-                    </View>
-                  )}
+                  <Text style={styles.messageText}>{message.message}</Text>
                 </View>
-                {message.label && (
-                  <Text style={styles.messageLabel}>In {message.label}</Text>
+                {message.yourTurn && (
+                  <View style={styles.yourTurnBadge}>
+                    <Text style={styles.yourTurnText}>Your Turn</Text>
+                  </View>
                 )}
-                <Text style={styles.messageText}>{message.message}</Text>
-              </View>
-              {message.yourTurn && (
-                <View style={styles.yourTurnBadge}>
-                  <Text style={styles.yourTurnText}>Your Turn</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No messages yet</Text>
+              <Text style={styles.emptySubText}>Start chatting with your matches!</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -339,6 +374,25 @@ const styles = StyleSheet.create({
   },
   navIcon: {
     fontSize: 24,
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: '#1a1a1a',
+    marginVertical: 10,
+  },
+  emptyText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  emptySubText: {
+    color: '#666',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
 

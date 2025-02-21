@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const BASE_URL = 'http://localhost:8080'; // Replace with your actual backend URL
 
 export const registerUser = async (userData) => {
@@ -52,7 +54,7 @@ export const loginUser = async (email, password) => {
   try {
     console.log("Login attempt for:", email);
     
-    const response = await fetch(`${BASE_URL}/api/users/login`, {
+    const response = await fetch(`${BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -115,5 +117,47 @@ export const updateUserProfile = async (updateData) => {
       success: false,
       message: error.message || 'Update failed'
     };
+  }
+};
+
+export const fetchMatchesAndMessages = async () => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    
+    // Fetch matches
+    const matchesResponse = await fetch(`${BASE_URL}/api/matches/findMatches`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const matchesData = await matchesResponse.json();
+
+    // Fetch messages
+    const messagesResponse = await fetch(`${BASE_URL}/api/matches/previews`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const messagesData = await messagesResponse.json();
+    console.log('messagesData:', messagesData);
+
+    return {
+      matches: matchesData,
+      messages: messagesData.map(message => ({
+        id: message.id,
+        name: message.name || 'Anonymous',
+        message: message.lastMessage || '',
+        image: message.image ? { uri: `https://api.quin.world/uploads/${message.image}` } : require('../assets/placeholder.png'),
+        email: message.email,
+        yourTurn: message.yourTurn || false
+      }))
+    };
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
   }
 }; 
