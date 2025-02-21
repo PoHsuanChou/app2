@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,41 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { sendWebSocketMessage, addMessageListener } from '../services/websocket';
 
 const MatchChatScreen = ({ route, navigation }) => {
   const { matchData } = route.params;
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    // 獲取當前用戶ID
+    const getUserId = async () => {
+      const userData = await AsyncStorage.getItem('userData');
+      if (userData) {
+        const { id } = JSON.parse(userData);
+        setUserId(id);
+      }
+    };
+    getUserId();
+
+    // 添加 WebSocket 消息監聽器
+    const removeListener = addMessageListener((wsMessage) => {
+      if (wsMessage.chatRoomId === matchData.id) {
+        setMessages(prevMessages => [...prevMessages, {
+          id: Date.now().toString(),
+          text: wsMessage.content,
+          sender: wsMessage.senderId === userId ? 'user' : 'match',
+          timestamp: new Date(),
+        }]);
+      }
+    });
+
+    // 清理監聽器
+    return () => removeListener();
+  }, [matchData.id, userId]);
 
   // 設置標題欄
   React.useLayoutEffect(() => {
@@ -43,16 +73,26 @@ const MatchChatScreen = ({ route, navigation }) => {
   }, [navigation, matchData]);
 
   const sendMessage = () => {
+    console.log('sendMessage:', message);
     if (message.trim()) {
-      setMessages([
-        ...messages,
-        {
-          id: Date.now().toString(),
-          text: message,
-          sender: 'user',
-          timestamp: new Date(),
-        },
-      ]);
+      // 先更新UI
+      const newMessage = {
+        id: Date.now().toString(),
+        text: message,
+        sender: 'user',
+        timestamp: new Date(),
+      };
+      setMessages(prevMessages => [...prevMessages, newMessage]);
+      console.log('newMessage1:', newMessage);
+      // 發送到WebSocket
+      sendWebSocketMessage({
+        type: 'CHAT',
+        chatRoomId: matchData.id,
+        content: message.trim(),
+        timestamp: new Date().toISOString()
+      });
+
+      // 清空輸入框
       setMessage('');
     }
   };
