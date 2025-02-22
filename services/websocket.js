@@ -23,6 +23,15 @@ export const initializeWebSocket = () => {
   return new Promise((resolve, reject) => {
     try {
       const socket = new SockJS(getWebSocketUrl());
+      socket.onopen = () => {
+        console.log('SockJS connection opened');
+    };
+    socket.onclose = (event) => {
+        console.log('SockJS connection closed', event);
+    };
+    socket.onerror = (error) => {
+        console.error('SockJS error:', error);
+    };
       
       stompClient = new Client({
         webSocketFactory: () => socket,
