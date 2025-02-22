@@ -1,28 +1,31 @@
 // websocketService.js
+import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 import { Platform } from 'react-native';
 
+// 存儲 STOMP 客戶端實例
 let stompClient = null;
+// 存儲消息監聽器
 const listeners = new Set();
 
-// 根據環境獲取 WebSocket URL
 const getWebSocketUrl = () => {
   if (__DEV__) {
     if (Platform.OS === 'android') {
-      return 'ws://10.0.2.2:8080/ws';  // Android 模擬器
+      return 'http://10.0.2.2:8080/ws';  // Android 模擬器
     } else {
-      return 'ws://localhost:8080/ws';  // iOS 模擬器
+      return 'http://localhost:8080/ws';  // iOS 模擬器
     }
   }
-  return 'wss://your-production-server.com/ws';  // 生產環境
+  return 'https://your-production-server.com/ws';  // 生產環境
 };
 
 export const initializeWebSocket = () => {
   return new Promise((resolve, reject) => {
     try {
-      // 創建新的 STOMP 客戶端
+      const socket = new SockJS(getWebSocketUrl());
+      
       stompClient = new Client({
-        brokerURL: getWebSocketUrl(),
+        webSocketFactory: () => socket,
         connectHeaders: {
           // 可以添加認證頭
           // 'Authorization': 'Bearer your-token'
@@ -74,6 +77,7 @@ export const sendWebSocketMessage = async (message) => {
       reject(new Error('WebSocket is not connected'));
       return;
     }
+    console.log('message:', message);
 
     try {
       stompClient.publish({

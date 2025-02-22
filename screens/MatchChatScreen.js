@@ -90,6 +90,46 @@ const MatchChatScreen = ({ route, navigation }) => {
     return () => removeListener();
   }, [matchData.id, userId]);
 
+  // 設置標題欄
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: () => (
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('UserProfile', { userData: matchData })}
+          style={styles.headerTitleContainer}
+        >
+          <Image 
+            source={matchData.image} 
+            style={styles.headerAvatar} 
+          />
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerName}>
+              {matchData.name.includes('@') 
+                ? matchData.name.split('@')[0] 
+                : matchData.name}
+            </Text>
+            {matchData.verified && (
+              <View style={styles.verifiedBadge}>
+                <Text style={styles.verifiedText}>✓</Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      ),
+      headerRight: () => (
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={() => {
+            // 這裡可以添加更多選項的處理邏輯
+            console.log('More options pressed');
+          }}
+        >
+          <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, matchData]);
+
   const sendMessage = async () => {
     const trimmedMessage = message.trim();
     if (!trimmedMessage || isLoading || !wsConnected) return;
@@ -275,20 +315,41 @@ const styles = StyleSheet.create({
   messageStatus: {
     marginLeft: 5,
   },
-  headerTitle: {
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
+  headerTextContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   headerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
+    borderWidth: 2,
+    borderColor: '#f4511e',
   },
   headerName: {
-    color: '#fff',
     fontSize: 18,
     fontWeight: '600',
+    color: '#fff',
+  },
+  verifiedBadge: {
+    backgroundColor: '#f4511e',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 5,
+  },
+  verifiedText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   headerButton: {
     padding: 8,

@@ -56,7 +56,7 @@ const MainScreen = ({ route, navigation }) => {
     },
   ];
   // State to manage whether to use real or fake data
-  const [useFakeData, setUseFakeData] = useState(false); // Change this to 'false' for real API calls
+  const [useFakeData, setUseFakeData] = useState(true); // Change this to 'false' for real API calls
   const [matches, setMatches] = useState([]);
   const [messages, setMessages] = useState([]);
 
