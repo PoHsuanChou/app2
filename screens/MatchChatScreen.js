@@ -55,13 +55,17 @@ const MatchChatScreen = ({ route, navigation }) => {
     const setup = async () => {
       // 獲取用戶信息
       try {
-        const userData = await AsyncStorage.getItem('userData');
-        if (userData) {
-          const { id } = JSON.parse(userData);
-          setUserId(id);
+        const token = await AsyncStorage.getItem('userToken');
+        if (token) {
+          setUserId(token);
+          console.log('User token:', userId);
+        } else {
+          console.log('No user token found');
         }
       } catch (error) {
-        console.error('Error getting user data:', error);
+        console.error('Error fetching user token:', error);
+      } finally {
+        setLoading(false); // 完成加載
       }
     };
 
@@ -153,8 +157,8 @@ const MatchChatScreen = ({ route, navigation }) => {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-
       // 發送消息
+      console.log('matchData test', matchData);
       const messagePayload = {
         type: 'CHAT',
         chatRoomId: matchData.id,
@@ -162,6 +166,8 @@ const MatchChatScreen = ({ route, navigation }) => {
         senderId: userId,
         timestamp: new Date().toISOString()
       };
+      console.log('matchData', matchData);
+      console.log('messagePayload', messagePayload);
 
       await sendWebSocketMessage(messagePayload);
 

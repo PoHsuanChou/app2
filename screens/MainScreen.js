@@ -59,6 +59,7 @@ const MainScreen = ({ route, navigation }) => {
   const [useFakeData, setUseFakeData] = useState(true); // Change this to 'false' for real API calls
   const [matches, setMatches] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [userToken, setUserToken] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -93,7 +94,21 @@ const MainScreen = ({ route, navigation }) => {
 
     fetchData();
   }, [useFakeData]); // Dependency array to re-fetch data when `useFakeData` changes
+  useEffect(() => {
+    const fetchToken = async () => {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        if (token) {
+          setUserToken(token);
+          console.log('User token:', token);
+        }
+      } catch (error) {
+        console.error('Error fetching user token:', error);
+      }
+    };
 
+    fetchToken();
+  }, []);
   // 添加測試用的假資料
   const testChatData = {
     id: 'test123',
