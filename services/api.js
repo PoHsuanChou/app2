@@ -74,12 +74,13 @@ export const loginUser = async (email, password) => {
     // Store auth token if your backend provides one
     if (data.token) {
       // You might want to store this token for future authenticated requests
-      // await AsyncStorage.setItem('userToken', data.token);
+      await AsyncStorage.setItem('userToken', data.token);
+      await AsyncStorage.setItem('userId', data.userId);
     }
 
     return {
       success: true,
-      userData: data.user,
+      userId: data.userId,
       token: data.token
     };
   } catch (error) {
@@ -152,7 +153,6 @@ export const fetchMatchesAndMessages = async () => {
         name: message.name || 'Anonymous',
         message: message.lastMessage || '',
         image: message.image ? { uri: `https://api.quin.world/uploads/${message.image}` } : require('../assets/placeholder.png'),
-        email: message.email,
         yourTurn: message.yourTurn || false
       }))
     };

@@ -19,7 +19,9 @@ import {
   sendWebSocketMessage, 
   addMessageListener,
   disconnectWebSocket,
-  isConnected 
+  isConnected,
+  subscribeToChat,
+  requestChatHistory
 } from '../services/websocket';
 
 const MatchChatScreen = ({ route, navigation }) => {
@@ -49,50 +51,73 @@ const MatchChatScreen = ({ route, navigation }) => {
       disconnectWebSocket();
     };
   }, []);
+  
 
   // 獲取用戶信息和設置消息監聽
   useEffect(() => {
     const setup = async () => {
       // 獲取用戶信息
       try {
-        const token = await AsyncStorage.getItem('userToken');
-        if (token) {
-          setUserId(token);
-          console.log('User token:', userId);
+        const userId = await AsyncStorage.getItem('userId');
+        if (userId) {
+          setUserId(userId);
+          console.log('userId:', userId);
         } else {
-          console.log('No user token found');
+          console.log('No userId found');
         }
       } catch (error) {
-        console.error('Error fetching user token:', error);
+        console.error('Error fetching user userId:', error);
       } finally {
-        setLoading(false); // 完成加載
+        setIsLoading(false); // 完成加載
       }
     };
 
     setup();
+  }, []);
 
-    // 設置消息監聽
-    const removeListener = addMessageListener((wsMessage) => {
-      if (wsMessage.chatRoomId === matchData.id) {
-        const newMessage = {
-          id: Date.now().toString(),
-          text: wsMessage.content,
-          sender: wsMessage.senderId === userId ? 'user' : 'match',
-          timestamp: new Date(),
-          status: 'received'
-        };
+  // 訂閱聊天室和請求聊天歷史
+  useEffect(() => {
+    if (wsConnected && userId && matchData.id) {
+      const chatRoomId = getChatRoomId(userId, matchData.id);
+      
+      // 進入聊天室時訂閱
+      const subscription = subscribeToChat(chatRoomId, (message) => {
+        const wsMessage = JSON.parse(message.body);
+        if (wsMessage.chatRoomId === chatRoomId) {
+          const newMessage = {
+            id: Date.now().toString(),
+            text: wsMessage.content,
+            sender: wsMessage.senderId === userId ? 'user' : 'match',
+            timestamp: new Date(),
+            status: 'received'
+          };
 
-        setMessages(prevMessages => [...prevMessages, newMessage]);
-        
-        // 滾動到最新消息
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-      }
-    });
+          setMessages(prevMessages => [...prevMessages, newMessage]);
+          
+          // 滾動到最新消息
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        }
+      });
+      
+      // 請求聊天歷史
+      requestChatHistory(chatRoomId);
+      
+      return () => {
+        // 離開聊天室時取消訂閱
+        if (subscription) {
+          subscription.unsubscribe();
+        }
+      };
+    }
+  }, [wsConnected, userId, matchData.id]);
 
-    return () => removeListener();
-  }, [matchData.id, userId]);
+  const getChatRoomId = (userIdA, userIdB) => {
+    return userIdA < userIdB ? `${userIdA}_${userIdB}` : `${userIdB}_${userIdA}`;
+  };
+
+  const chatRoomId = getChatRoomId(userId, matchData.id);
 
   // 設置標題欄
   React.useLayoutEffect(() => {
@@ -159,11 +184,13 @@ const MatchChatScreen = ({ route, navigation }) => {
       }, 100);
       // 發送消息
       console.log('matchData test', matchData);
+      
       const messagePayload = {
-        type: 'CHAT',
-        chatRoomId: matchData.id,
+        type: 'TEXT',
+        chatRoomId: chatRoomId,
         content: trimmedMessage,
         senderId: userId,
+        receiverId: matchData.id,
         timestamp: new Date().toISOString()
       };
       console.log('matchData', matchData);
@@ -202,8 +229,8 @@ const MatchChatScreen = ({ route, navigation }) => {
       );
 
       const messagePayload = {
-        type: 'CHAT',
-        chatRoomId: matchData.id,
+        type: 'TEXT',
+        chatRoomId: chatRoomId,
         content: failedMessage.text,
         senderId: userId,
         timestamp: new Date().toISOString()

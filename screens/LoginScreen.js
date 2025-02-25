@@ -74,9 +74,10 @@ const handleGoogleSignIn = async () => {
             });
           } else if (data.message === '02') {
             await AsyncStorage.setItem('userToken', data.token);
+            await AsyncStorage.setItem('userId', data.userId);
             navigation.navigate('Main', {
-              userData: data.user,
-              token: data.token
+              // userData: data.user,
+              // token: data.token
             });
           }
         } else {
@@ -157,8 +158,9 @@ const handleGoogleSignIn = async () => {
         
         if (response.success) {
           await AsyncStorage.setItem('userToken', response.token);
+          await AsyncStorage.setItem('userId', response.userId);
           navigation.navigate('Main', { 
-            userData: response.userData 
+            // userData: response.userData 
           });
         } else {
           Alert.alert('Login Failed', response.message || 'Invalid credentials');

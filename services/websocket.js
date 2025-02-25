@@ -2,6 +2,7 @@
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 存儲 STOMP 客戶端實例
 let stompClient = null;
@@ -19,25 +20,31 @@ const getWebSocketUrl = () => {
   return 'https://your-production-server.com/ws';  // 生產環境
 };
 
-export const initializeWebSocket = () => {
-  return new Promise((resolve, reject) => {
+export const initializeWebSocket = async () => {
+  return new Promise(async (resolve, reject) => {
     try {
+      // 從 AsyncStorage 獲取 token
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        console.warn('No authentication token found');
+      }
+      
       const socket = new SockJS(getWebSocketUrl());
       socket.onopen = () => {
         console.log('SockJS connection opened');
-    };
-    socket.onclose = (event) => {
+      };
+      socket.onclose = (event) => {
         console.log('SockJS connection closed', event);
-    };
-    socket.onerror = (error) => {
+      };
+      socket.onerror = (error) => {
         console.error('SockJS error:', error);
-    };
+      };
       
       stompClient = new Client({
         webSocketFactory: () => socket,
         connectHeaders: {
-          // 可以添加認證頭
-          // 'Authorization': 'Bearer your-token'
+          // 添加認證頭
+          'Authorization': token ? `Bearer ${token}` : ''
         },
         debug: function (str) {
           console.log('STOMP: ' + str);
@@ -121,4 +128,37 @@ export const addMessageListener = (listener) => {
 
 export const isConnected = () => {
   return stompClient?.connected ?? false;
+};
+
+// 添加訂閱聊天室的功能
+export const subscribeToChat = (chatRoomId, onMessageReceived) => {
+  if (!isConnected()) {
+    console.error('WebSocket not connected');
+    return null;
+  }
+  
+  console.log(`Subscribing to chat room: ${chatRoomId}`);
+  const subscription = stompClient.subscribe(
+    `/topic/chat/${chatRoomId}`, 
+    onMessageReceived
+  );
+  
+  return subscription;
+};
+
+// 添加請求聊天歷史的功能
+export const requestChatHistory = (chatRoomId) => {
+  if (!isConnected()) {
+    console.error('WebSocket not connected');
+    return false;
+  }
+  
+  console.log(`Requesting chat history for room: ${chatRoomId}`);
+  stompClient.publish({
+    destination: "/app/get-chat-history",
+    body: chatRoomId,
+    headers: { 'content-type': 'text/plain' }
+  });
+  
+  return true;
 };

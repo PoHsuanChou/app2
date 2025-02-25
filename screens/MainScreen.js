@@ -56,7 +56,7 @@ const MainScreen = ({ route, navigation }) => {
     },
   ];
   // State to manage whether to use real or fake data
-  const [useFakeData, setUseFakeData] = useState(true); // Change this to 'false' for real API calls
+  const [useFakeData, setUseFakeData] = useState(false); // Change this to 'false' for real API calls
   const [matches, setMatches] = useState([]);
   const [messages, setMessages] = useState([]);
   const [userToken, setUserToken] = useState(null);
@@ -65,6 +65,7 @@ const MainScreen = ({ route, navigation }) => {
     const fetchData = async () => {
       if (!useFakeData) {
         try {
+          console.log('real');
           const { matches, messages } = await fetchMatchesAndMessages();
           console.log('Matches:', matches);
           console.log('Messages:', messages);
@@ -87,6 +88,7 @@ const MainScreen = ({ route, navigation }) => {
           setMessages(fakeMessages);
         }
       } else {
+        console.log('useFakeData', useFakeData);
         setMatches(fakeMatches);
         setMessages(fakeMessages);
       }
