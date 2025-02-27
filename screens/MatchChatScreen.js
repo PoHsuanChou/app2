@@ -81,14 +81,14 @@ const MatchChatScreen = ({ route, navigation }) => {
       const chatRoomId = getChatRoomId(userId, matchData.id);
       
       // 進入聊天室時訂閱
-      const subscription = subscribeToChat(chatRoomId, (message) => {
+      const messageSubscription = subscribeToChat(chatRoomId, (message) => {
         const wsMessage = JSON.parse(message.body);
         if (wsMessage.chatRoomId === chatRoomId) {
           const newMessage = {
-            id: Date.now().toString(),
+            id: wsMessage.id || Date.now().toString(),
             text: wsMessage.content,
             sender: wsMessage.senderId === userId ? 'user' : 'match',
-            timestamp: new Date(),
+            timestamp: new Date(wsMessage.timestamp),
             status: 'received'
           };
 
@@ -101,13 +101,48 @@ const MatchChatScreen = ({ route, navigation }) => {
         }
       });
       
+      // 訂閱聊天歷史記錄
+      const historySubscription = addMessageListener(`/user/${userId}/queue/chat-history`, (history) => {
+        console.log('Raw chat history received:', history);
+        
+        try {
+          const historyMessages = JSON.parse(history.body);
+          console.log('Parsed chat history:', historyMessages);
+          
+          if (Array.isArray(historyMessages)) {
+            const formattedMessages = historyMessages.map(msg => ({
+              id: msg.id || Date.now().toString(),
+              text: msg.content,
+              sender: msg.senderId === userId ? 'user' : 'match',
+              timestamp: new Date(msg.timestamp),
+              status: 'received'
+            }));
+            
+            console.log('Formatted chat history:', formattedMessages);
+            setMessages(formattedMessages);
+            
+            // 滾動到最新消息
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+          } else {
+            console.warn('Received chat history is not an array:', historyMessages);
+          }
+        } catch (error) {
+          console.error('Error parsing chat history:', error, 'Raw data:', history.body);
+        }
+      });
+      
       // 請求聊天歷史
       requestChatHistory(chatRoomId);
       
       return () => {
         // 離開聊天室時取消訂閱
-        if (subscription) {
-          subscription.unsubscribe();
+        if (messageSubscription) {
+          messageSubscription.unsubscribe();
+        }
+        if (historySubscription) {
+          historySubscription.unsubscribe();
         }
       };
     }
@@ -257,23 +292,38 @@ const MatchChatScreen = ({ route, navigation }) => {
     }
   };
 
+  const formatTime = (date) => {
+    if (!date) return '';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   const renderMessage = ({ item }) => (
-    <View style={[
-      styles.messageBubble,
-      item.sender === 'user' ? styles.userMessage : styles.matchMessage
-    ]}>
-      <Text style={styles.messageText}>{item.text}</Text>
-      {item.status === 'sending' && (
-        <ActivityIndicator size="small" color="#999" style={styles.messageStatus} />
+    <View style={styles.messageContainer}>
+      {item.sender === 'match' && (
+        <Image 
+          source={matchData.image} 
+          style={styles.messageAvatar} 
+        />
       )}
-      {item.status === 'failed' && (
-        <TouchableOpacity 
-          onPress={() => retryMessage(item)}
-          style={styles.retryButton}
-        >
-          <Ionicons name="reload" size={16} color="red" />
-        </TouchableOpacity>
-      )}
+      <View style={[
+        styles.messageBubble,
+        item.sender === 'user' ? styles.userMessage : styles.matchMessage
+      ]}>
+        <Text style={styles.messageText}>{item.text}</Text>
+        <Text style={styles.messageTime}>{formatTime(item.timestamp)}</Text>
+        {item.status === 'sending' && (
+          <ActivityIndicator size="small" color="#999" style={styles.messageStatus} />
+        )}
+        {item.status === 'failed' && (
+          <TouchableOpacity 
+            onPress={() => retryMessage(item)}
+            style={styles.retryButton}
+          >
+            <Ionicons name="reload" size={16} color="red" />
+          </TouchableOpacity>
+        )}
+      </View>
+      {item.sender === 'user' && <View style={styles.emptyAvatar} />}
     </View>
   );
 
@@ -346,7 +396,9 @@ const styles = StyleSheet.create({
     color: '#856404',
   },
   messageStatus: {
-    marginLeft: 5,
+    position: 'absolute',
+    right: -20,
+    bottom: 10,
   },
   headerTitleContainer: {
     flexDirection: 'row',
@@ -390,11 +442,22 @@ const styles = StyleSheet.create({
   messagesList: {
     padding: 16,
   },
+  messageContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginVertical: 6,
+  },
+  messageAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 8,
+  },
   messageBubble: {
-    maxWidth: '80%',
+    maxWidth: '70%',
     padding: 12,
     borderRadius: 20,
-    marginVertical: 4,
+    position: 'relative',
   },
   userMessage: {
     backgroundColor: '#f4511e',
@@ -409,6 +472,12 @@ const styles = StyleSheet.create({
   messageText: {
     color: '#fff',
     fontSize: 16,
+  },
+  messageTime: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.7)',
+    alignSelf: 'flex-end',
+    marginTop: 4,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -428,8 +497,9 @@ const styles = StyleSheet.create({
     maxHeight: 100,
   },
   retryButton: {
-    marginLeft: 5,
-    padding: 5,
+    position: 'absolute',
+    right: -24,
+    bottom: 10,
   },
   sendButton: {
     width: 44,
@@ -441,6 +511,10 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: '#2C2C2E',
+  },
+  emptyAvatar: {
+    width: 28,
+    marginLeft: 8,
   },
 });
 

@@ -8,6 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 let stompClient = null;
 // 存儲消息監聽器
 const listeners = new Set();
+// 存儲特定目的地的訂閱
+const subscriptions = new Map();
 
 const getWebSocketUrl = () => {
   if (__DEV__) {
@@ -112,6 +114,14 @@ export const sendWebSocketMessage = async (message) => {
 export const disconnectWebSocket = () => {
   if (stompClient) {
     try {
+      // 取消所有特定目的地的訂閱
+      subscriptions.forEach(subscription => {
+        if (subscription && typeof subscription.unsubscribe === 'function') {
+          subscription.unsubscribe();
+        }
+      });
+      subscriptions.clear();
+      
       stompClient.deactivate();
     } catch (error) {
       console.error('Disconnect error:', error);
@@ -121,9 +131,27 @@ export const disconnectWebSocket = () => {
   listeners.clear();
 };
 
-export const addMessageListener = (listener) => {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+export const addMessageListener = (destination, callback) => {
+  if (!isConnected()) {
+    console.error('WebSocket not connected');
+    return null;
+  }
+  
+  if (typeof destination === 'function') {
+    // 舊的行為，添加一般的消息監聽器
+    listeners.add(destination);
+    return () => listeners.delete(destination);
+  } else {
+    // 新的行為，訂閱特定目的地
+    console.log(`Subscribing to: ${destination}`);
+    const subscription = stompClient.subscribe(destination, callback);
+    
+    // 儲存訂閱以便後續管理
+    subscriptions.set(destination, subscription);
+    
+    // 返回取消訂閱的函數
+    return subscription;
+  }
 };
 
 export const isConnected = () => {
