@@ -298,7 +298,10 @@ const MatchChatScreen = ({ route, navigation }) => {
   };
 
   const renderMessage = ({ item }) => (
-    <View style={styles.messageContainer}>
+    <View style={[
+      styles.messageContainer,
+      item.sender === 'user' ? styles.userMessageContainer : styles.matchMessageContainer
+    ]}>
       {item.sender === 'match' && (
         <Image 
           source={matchData.image} 
@@ -446,6 +449,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     marginVertical: 6,
+    width: '100%',
+  },
+  userMessageContainer: {
+    justifyContent: 'flex-end',
+  },
+  matchMessageContainer: {
+    justifyContent: 'flex-start',
   },
   messageAvatar: {
     width: 28,
