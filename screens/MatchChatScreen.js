@@ -1,3 +1,7 @@
+/**
+ * Match Chat Screen - Chat interface for communicating with matches
+ * 配對聊天屏幕 - 與配對用戶溝通的聊天界面
+ */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -16,24 +20,34 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   initializeWebSocket, 
-  sendWebSocketMessage, 
-  addMessageListener,
   disconnectWebSocket,
-  isConnected,
-  subscribeToChat,
-  requestChatHistory
+  isConnected
 } from '../services/websocket';
+import {
+  subscribeToChatRoom,
+  subscribeToChatHistory,
+  sendChatMessage,
+  getChatRoomId
+} from '../services/chatService';
+import { formatMessageTime, createMessage, updateMessageStatus } from '../utils/messageUtils';
 
 const MatchChatScreen = ({ route, navigation }) => {
+  // 從路由參數獲取配對數據
   const { matchData } = route.params;
+  
+  // 狀態管理
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [userId, setUserId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
+  
+  // 用於滾動到最新消息的 ref
   const flatListRef = useRef(null);
 
-  // 初始化 WebSocket 連接
+  /**
+   * 初始化 WebSocket 連接
+   */
   useEffect(() => {
     const setupWebSocket = async () => {
       try {
@@ -47,97 +61,63 @@ const MatchChatScreen = ({ route, navigation }) => {
 
     setupWebSocket();
 
+    // 離開屏幕時斷開 WebSocket 連接
     return () => {
       disconnectWebSocket();
     };
   }, []);
   
-
-  // 獲取用戶信息和設置消息監聽
+  /**
+   * 獲取用戶信息
+   */
   useEffect(() => {
-    const setup = async () => {
-      // 獲取用戶信息
+    const getUserInfo = async () => {
       try {
-        const userId = await AsyncStorage.getItem('userId');
-        if (userId) {
-          setUserId(userId);
-          console.log('userId:', userId);
+        const storedUserId = await AsyncStorage.getItem('userId');
+        if (storedUserId) {
+          setUserId(storedUserId);
+          console.log('userId:', storedUserId);
         } else {
           console.log('No userId found');
         }
       } catch (error) {
         console.error('Error fetching user userId:', error);
       } finally {
-        setIsLoading(false); // 完成加載
+        setIsLoading(false);
       }
     };
 
-    setup();
+    getUserInfo();
   }, []);
 
-  // 訂閱聊天室和請求聊天歷史
+  /**
+   * 訂閱聊天室和請求聊天歷史
+   */
   useEffect(() => {
+    // 只有當 WebSocket 已連接並且有 userId 和 matchData.id 時才訂閱
     if (wsConnected && userId && matchData.id) {
-      const chatRoomId = getChatRoomId(userId, matchData.id);
-      
-      // 進入聊天室時訂閱
-      const messageSubscription = subscribeToChat(chatRoomId, (message) => {
-        const wsMessage = JSON.parse(message.body);
-        if (wsMessage.chatRoomId === chatRoomId) {
-          const newMessage = {
-            id: wsMessage.id || Date.now().toString(),
-            text: wsMessage.content,
-            sender: wsMessage.senderId === userId ? 'user' : 'match',
-            timestamp: new Date(wsMessage.timestamp),
-            status: 'received'
-          };
-
-          setMessages(prevMessages => [...prevMessages, newMessage]);
-          
-          // 滾動到最新消息
-          setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }, 100);
-        }
-      });
-      
-      // 訂閱聊天歷史記錄
-      const historySubscription = addMessageListener(`/user/${userId}/queue/chat-history`, (history) => {
-        console.log('Raw chat history received:', history);
+      // 訂閱實時聊天消息
+      const messageSubscription = subscribeToChatRoom(userId, matchData.id, (newMessage) => {
+        setMessages(prevMessages => [...prevMessages, newMessage]);
         
-        try {
-          const historyMessages = JSON.parse(history.body);
-          console.log('Parsed chat history:', historyMessages);
-          
-          if (Array.isArray(historyMessages)) {
-            const formattedMessages = historyMessages.map(msg => ({
-              id: msg.id || Date.now().toString(),
-              text: msg.content,
-              sender: msg.senderId === userId ? 'user' : 'match',
-              timestamp: new Date(msg.timestamp),
-              status: 'received'
-            }));
-            
-            console.log('Formatted chat history:', formattedMessages);
-            setMessages(formattedMessages);
-            
-            // 滾動到最新消息
-            setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: true });
-            }, 100);
-          } else {
-            console.warn('Received chat history is not an array:', historyMessages);
-          }
-        } catch (error) {
-          console.error('Error parsing chat history:', error, 'Raw data:', history.body);
-        }
+        // 滾動到最新消息
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
       });
       
-      // 請求聊天歷史
-      requestChatHistory(chatRoomId);
+      // 訂閱聊天歷史
+      const historySubscription = subscribeToChatHistory(userId, matchData.id, (historyMessages) => {
+        setMessages(historyMessages);
+        
+        // 滾動到最新消息
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      });
       
+      // 組件卸載時取消訂閱
       return () => {
-        // 離開聊天室時取消訂閱
         if (messageSubscription) {
           messageSubscription.unsubscribe();
         }
@@ -148,13 +128,9 @@ const MatchChatScreen = ({ route, navigation }) => {
     }
   }, [wsConnected, userId, matchData.id]);
 
-  const getChatRoomId = (userIdA, userIdB) => {
-    return userIdA < userIdB ? `${userIdA}_${userIdB}` : `${userIdB}_${userIdA}`;
-  };
-
-  const chatRoomId = getChatRoomId(userId, matchData.id);
-
-  // 設置標題欄
+  /**
+   * 配置導航標題欄
+   */
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: () => (
@@ -184,7 +160,6 @@ const MatchChatScreen = ({ route, navigation }) => {
         <TouchableOpacity 
           style={styles.headerButton}
           onPress={() => {
-            // 這裡可以添加更多選項的處理邏輯
             console.log('More options pressed');
           }}
         >
@@ -194,6 +169,9 @@ const MatchChatScreen = ({ route, navigation }) => {
     });
   }, [navigation, matchData]);
 
+  /**
+   * 發送消息
+   */
   const sendMessage = async () => {
     const trimmedMessage = message.trim();
     if (!trimmedMessage || isLoading || !wsConnected) return;
@@ -201,43 +179,24 @@ const MatchChatScreen = ({ route, navigation }) => {
     setIsLoading(true);
     
     try {
-      const newMessage = {
-        id: Date.now().toString(),
-        text: trimmedMessage,
-        sender: 'user',
-        timestamp: new Date(),
-        status: 'sending'
-      };
+      // 創建新消息對象
+      const newMessage = createMessage(trimmedMessage, 'user');
 
-      // 立即更新 UI
+      // 更新 UI
       setMessages(prevMessages => [...prevMessages, newMessage]);
-      setMessage(''); // 立即清空輸入框
+      setMessage(''); // 清空輸入框
 
       // 滾動到最新消息
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-      // 發送消息
-      console.log('matchData test', matchData);
       
-      const messagePayload = {
-        type: 'TEXT',
-        chatRoomId: chatRoomId,
-        content: trimmedMessage,
-        senderId: userId,
-        receiverId: matchData.id,
-        timestamp: new Date().toISOString()
-      };
-      console.log('matchData', matchData);
-      console.log('messagePayload', messagePayload);
-
-      await sendWebSocketMessage(messagePayload);
+      // 發送消息
+      await sendChatMessage(userId, matchData.id, trimmedMessage);
 
       // 更新消息狀態為已發送
       setMessages(prevMessages =>
-        prevMessages.map(msg =>
-          msg.id === newMessage.id ? { ...msg, status: 'sent' } : msg
-        )
+        updateMessageStatus(prevMessages, newMessage.id, 'sent')
       );
 
     } catch (error) {
@@ -245,39 +204,29 @@ const MatchChatScreen = ({ route, navigation }) => {
       
       // 更新消息狀態為發送失敗
       setMessages(prevMessages =>
-        prevMessages.map(msg =>
-          msg.id === newMessage.id ? { ...msg, status: 'failed' } : msg
-        )
+        updateMessageStatus(prevMessages, newMessage.id, 'failed')
       );
     } finally {
       setIsLoading(false);
     }
   };
 
+  /**
+   * 重試發送失敗的消息
+   */
   const retryMessage = async (failedMessage) => {
     try {
       // 更新消息狀態為重試中
       setMessages(prevMessages =>
-        prevMessages.map(msg =>
-          msg.id === failedMessage.id ? { ...msg, status: 'sending' } : msg
-        )
+        updateMessageStatus(prevMessages, failedMessage.id, 'sending')
       );
 
-      const messagePayload = {
-        type: 'TEXT',
-        chatRoomId: chatRoomId,
-        content: failedMessage.text,
-        senderId: userId,
-        timestamp: new Date().toISOString()
-      };
-
-      await sendWebSocketMessage(messagePayload);
+      // 重新發送消息
+      await sendChatMessage(userId, matchData.id, failedMessage.text);
 
       // 更新消息狀態為已發送
       setMessages(prevMessages =>
-        prevMessages.map(msg =>
-          msg.id === failedMessage.id ? { ...msg, status: 'sent' } : msg
-        )
+        updateMessageStatus(prevMessages, failedMessage.id, 'sent')
       );
 
     } catch (error) {
@@ -285,18 +234,14 @@ const MatchChatScreen = ({ route, navigation }) => {
       
       // 更新消息狀態為發送失敗
       setMessages(prevMessages =>
-        prevMessages.map(msg =>
-          msg.id === failedMessage.id ? { ...msg, status: 'failed' } : msg
-        )
+        updateMessageStatus(prevMessages, failedMessage.id, 'failed')
       );
     }
   };
 
-  const formatTime = (date) => {
-    if (!date) return '';
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
+  /**
+   * 渲染單條消息
+   */
   const renderMessage = ({ item }) => (
     <View style={[
       styles.messageContainer,
@@ -313,7 +258,7 @@ const MatchChatScreen = ({ route, navigation }) => {
         item.sender === 'user' ? styles.userMessage : styles.matchMessage
       ]}>
         <Text style={styles.messageText}>{item.text}</Text>
-        <Text style={styles.messageTime}>{formatTime(item.timestamp)}</Text>
+        <Text style={styles.messageTime}>{formatMessageTime(item.timestamp)}</Text>
         {item.status === 'sending' && (
           <ActivityIndicator size="small" color="#999" style={styles.messageStatus} />
         )}
@@ -332,6 +277,7 @@ const MatchChatScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* WebSocket 連接狀態提示 */}
       {!wsConnected && (
         <View style={styles.connectionWarning}>
           <Text style={styles.connectionWarningText}>
@@ -340,6 +286,7 @@ const MatchChatScreen = ({ route, navigation }) => {
         </View>
       )}
       
+      {/* 消息列表 */}
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -349,6 +296,7 @@ const MatchChatScreen = ({ route, navigation }) => {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
       />
       
+      {/* 消息輸入區 */}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.inputContainer}
@@ -385,6 +333,7 @@ const MatchChatScreen = ({ route, navigation }) => {
   );
 };
 
+// 樣式定義
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -463,6 +412,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginRight: 8,
   },
+  emptyAvatar: {
+    width: 28,
+    marginLeft: 8,
+  },
   messageBubble: {
     maxWidth: '70%',
     padding: 12,
@@ -521,10 +474,6 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: '#2C2C2E',
-  },
-  emptyAvatar: {
-    width: 28,
-    marginLeft: 8,
   },
 });
 

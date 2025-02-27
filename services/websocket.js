@@ -1,4 +1,7 @@
-// websocketService.js
+/**
+ * WebSocket Service - Handles all WebSocket connections and messaging
+ * WebSocket 服務 - 處理所有 WebSocket 連接和消息傳遞
+ */
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 import { Platform } from 'react-native';
@@ -11,6 +14,11 @@ const listeners = new Set();
 // 存儲特定目的地的訂閱
 const subscriptions = new Map();
 
+/**
+ * Get the appropriate WebSocket URL based on environment
+ * 根據環境獲取適當的 WebSocket URL
+ * @returns {string} - WebSocket URL
+ */
 const getWebSocketUrl = () => {
   if (__DEV__) {
     if (Platform.OS === 'android') {
@@ -22,6 +30,11 @@ const getWebSocketUrl = () => {
   return 'https://your-production-server.com/ws';  // 生產環境
 };
 
+/**
+ * Initialize the WebSocket connection
+ * 初始化 WebSocket 連接
+ * @returns {Promise} - Resolves when connected
+ */
 export const initializeWebSocket = async () => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -89,6 +102,12 @@ export const initializeWebSocket = async () => {
   });
 };
 
+/**
+ * Send a message through WebSocket
+ * 通過 WebSocket 發送消息
+ * @param {Object} message - Message to send
+ * @returns {Promise} - Resolves when message is sent
+ */
 export const sendWebSocketMessage = async (message) => {
   return new Promise((resolve, reject) => {
     if (!stompClient?.connected) {
@@ -111,6 +130,10 @@ export const sendWebSocketMessage = async (message) => {
   });
 };
 
+/**
+ * Disconnect from WebSocket
+ * 斷開 WebSocket 連接
+ */
 export const disconnectWebSocket = () => {
   if (stompClient) {
     try {
@@ -131,6 +154,13 @@ export const disconnectWebSocket = () => {
   listeners.clear();
 };
 
+/**
+ * Add a message listener or subscribe to a specific destination
+ * 添加消息監聽器或訂閱特定目的地
+ * @param {string|Function} destination - Destination path or listener function
+ * @param {Function} callback - Callback function
+ * @returns {Function|Object} - Unsubscribe function or subscription object
+ */
 export const addMessageListener = (destination, callback) => {
   if (!isConnected()) {
     console.error('WebSocket not connected');
@@ -154,11 +184,22 @@ export const addMessageListener = (destination, callback) => {
   }
 };
 
+/**
+ * Check if WebSocket is connected
+ * 檢查 WebSocket 是否已連接
+ * @returns {boolean} - True if connected
+ */
 export const isConnected = () => {
   return stompClient?.connected ?? false;
 };
 
-// 添加訂閱聊天室的功能
+/**
+ * Subscribe to a chat room
+ * 訂閱聊天室
+ * @param {string} chatRoomId - Chat room ID
+ * @param {Function} onMessageReceived - Callback when message is received
+ * @returns {Object} - Subscription object
+ */
 export const subscribeToChat = (chatRoomId, onMessageReceived) => {
   if (!isConnected()) {
     console.error('WebSocket not connected');
@@ -174,7 +215,12 @@ export const subscribeToChat = (chatRoomId, onMessageReceived) => {
   return subscription;
 };
 
-// 添加請求聊天歷史的功能
+/**
+ * Request chat history for a chat room
+ * 請求聊天室的聊天歷史
+ * @param {string} chatRoomId - Chat room ID
+ * @returns {boolean} - True if request was sent
+ */
 export const requestChatHistory = (chatRoomId) => {
   if (!isConnected()) {
     console.error('WebSocket not connected');
