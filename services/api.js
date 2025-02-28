@@ -136,7 +136,7 @@ export const fetchMatchesAndMessages = async () => {
     const matchesData = await matchesResponse.json();
 
     // Fetch messages
-    const messagesResponse = await fetch(`${BASE_URL}/api/matches/previews`, {
+    const messagesResponse = await fetch(`${BASE_URL}/api/matches/messages`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
