@@ -1,4 +1,4 @@
-import React,{ useState,useEffect } from 'react';
+import React,{ useState,useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,11 @@ import {
   TouchableOpacity,
   Dimensions,
   Alert,
+  Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchMatchesAndMessages, checkDailyTarotStatus } from '../services/api';
+import Icon from 'react-native-vector-icons/Ionicons';
 const { width } = Dimensions.get('window');
 
 const EmptyMatches = () => (
@@ -61,6 +63,8 @@ const MainScreen = ({ route, navigation }) => {
   const [matches, setMatches] = useState([]);
   const [messages, setMessages] = useState([]);
   const [userToken, setUserToken] = useState(null);
+  const [showNotification, setShowNotification] = useState(false);
+  const notificationAnim = useRef(new Animated.Value(-100)).current;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -121,28 +125,61 @@ const MainScreen = ({ route, navigation }) => {
     message: 'Hello! This is a test chat.',
   };
 
-  const handleTarotNavigation = async () => {
-    try {
-      const hasDrawnToday = await checkDailyTarotStatus();
-      
-      if (hasDrawnToday) {
-        Alert.alert(
-          "Daily Tarot Reading",
-          "You've already drawn your card for today. Please come back tomorrow for a new reading!",
-          [{ text: "OK", style: "default" }]
-        );
-      } else {
-        navigation.navigate('TarotCards');
-      }
-    } catch (error) {
-      console.error('Error checking tarot status:', error);
-      // If there's an error, we'll allow navigation as a fallback
-      navigation.navigate('TarotCards');
+  const showTarotNotification = () => {
+    setShowNotification(true);
+    Animated.sequence([
+      Animated.spring(notificationAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.delay(3000),
+      Animated.timing(notificationAnim, {
+        toValue: -100,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    ]).start(() => setShowNotification(false));
+  };
+
+  const handleTarotNavigation = () => {
+    // Get this value from your API or state management
+    const hasDrawnTodayCard = true; // Replace with actual logic
+
+    if (hasDrawnTodayCard) {
+      // Replace the alert with our new notification
+      showTarotNotification();
+      return;
     }
+    
+    navigation.navigate('TarotCards');
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      {showNotification && (
+        <Animated.View 
+          style={[
+            styles.notification,
+            {
+              transform: [{ translateY: notificationAnim }]
+            }
+          ]}
+        >
+          <View style={styles.notificationContent}>
+            <Icon name="time-outline" size={24} color="#E9C46A" />
+            <View style={styles.notificationTextContainer}>
+              <Text style={styles.notificationTitle}>
+                Daily Card Already Drawn
+              </Text>
+              <Text style={styles.notificationMessage}>
+                Your next reading will be available tomorrow
+              </Text>
+            </View>
+          </View>
+        </Animated.View>
+      )}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Quin</Text>
       </View>
@@ -431,6 +468,44 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 14,
     textAlign: 'center',
+  },
+  notification: {
+    position: 'absolute',
+    top: 90, // Adjust this based on your header/status bar height
+    left: 16,
+    right: 16,
+    zIndex: 1000,
+    borderRadius: 12,
+    backgroundColor: 'rgba(20, 20, 20, 0.9)',
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.27,
+    shadowRadius: 4.65,
+    elevation: 6,
+    borderLeftWidth: 4,
+    borderLeftColor: '#E9C46A', 
+  },
+  notificationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notificationTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  notificationTitle: {
+    color: '#E9C46A',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  notificationMessage: {
+    color: '#DDD',
+    fontSize: 14,
   },
 });
 
