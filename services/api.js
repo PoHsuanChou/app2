@@ -160,4 +160,35 @@ export const fetchMatchesAndMessages = async () => {
     console.error('API Error:', error);
     throw error;
   }
+};
+
+export const tarotApi = {
+  getCardDetails: async (cardId) => {
+    try {
+      console.log('Fetching card details for cardId:', cardId);
+      const token = await AsyncStorage.getItem('userToken');
+      console.log('Token:', token);
+      const response = await fetch(`${BASE_URL}/api/cards/getCard`,{
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+      },
+      });
+      console.log('API Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch card data');
+      }
+      
+      const data = await response.json();
+      console.log('Card data received:', data);
+      return data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  },
+  
+  // 你可以在這裡添加其他塔羅牌相關的 API 方法
 }; 

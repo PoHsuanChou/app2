@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,9 @@ import {
   Image,
   Animated,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
+import { tarotApi } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -24,6 +26,8 @@ const tarotMeanings = {
 
 const CardRevealScreen = ({ navigation, route }) => {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [cardData, setCardData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { cardId } = route.params;
   const flipAnim = useRef(new Animated.Value(0)).current;
 
@@ -37,7 +41,28 @@ const CardRevealScreen = ({ navigation, route }) => {
     outputRange: ['180deg', '360deg'],
   });
 
-  const handleTurnOver = () => {
+  const fetchCardData = async () => {
+    console.log('Route params:', route.params);
+    console.log('Attempting to fetch card data for cardId:', cardId);
+    
+    setIsLoading(true);
+    try {
+      const data = await tarotApi.getCardDetails(cardId);
+      console.log('Successfully fetched card data:', data);
+      setCardData(data);
+    } catch (error) {
+      console.error('Error in fetchCardData:', error);
+      // 可以在這裡添加錯誤提示UI
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTurnOver = async () => {
+    // 先獲取卡片數據
+    await fetchCardData();
+    
+    // 然後執行翻卡動畫
     Animated.spring(flipAnim, {
       toValue: 180,
       friction: 8,
@@ -75,13 +100,23 @@ const CardRevealScreen = ({ navigation, route }) => {
         </Animated.View>
 
         <Animated.View style={[styles.cardFace, styles.cardBack, backAnimatedStyle]}>
-          <View style={styles.meaningContainer}>
-            <Text style={styles.cardName}>{tarotMeanings[cardId]?.name}</Text>
-            <Text style={styles.meaningText}>{tarotMeanings[cardId]?.meaning}</Text>
-            <Text style={styles.descriptionText}>
-              {tarotMeanings[cardId]?.description}
-            </Text>
-          </View>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#FFD700" />
+            </View>
+          ) : cardData ? (
+            <View style={styles.meaningContainer}>
+              <Text style={styles.cardName}>{cardData.name}</Text>
+              <Text style={styles.meaningText}>{cardData.meaning}</Text>
+              <Text style={styles.descriptionText}>
+                {cardData.description}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>Failed to load card data</Text>
+            </View>
+          )}
         </Animated.View>
       </View>
 
@@ -195,6 +230,21 @@ const styles = StyleSheet.create({
   abandonText: {
     color: '#999',
     fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#FF4444',
+    fontSize: 18,
+    textAlign: 'center',
   },
 });
 
