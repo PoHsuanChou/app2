@@ -162,6 +162,26 @@ export const fetchMatchesAndMessages = async () => {
   }
 };
 
+export const checkDailyTarotStatus = async () => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    const response = await fetch(`${BASE_URL}/api/cards/check-draw`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+    console.log('Daily tarot status data:', data);
+    return data; // true if user has already drawn today, false otherwise
+  } catch (error) {
+    console.error('Error checking daily tarot status:', error);
+    throw error;
+  }
+};
+
 export const tarotApi = {
   getCardDetails: async (cardId) => {
     try {
