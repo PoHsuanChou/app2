@@ -8,9 +8,10 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchMatchesAndMessages } from '../services/api';
+import { fetchMatchesAndMessages, checkDailyTarotStatus } from '../services/api';
 const { width } = Dimensions.get('window');
 
 const EmptyMatches = () => (
@@ -120,6 +121,26 @@ const MainScreen = ({ route, navigation }) => {
     message: 'Hello! This is a test chat.',
   };
 
+  const handleTarotNavigation = async () => {
+    try {
+      const hasDrawnToday = await checkDailyTarotStatus();
+      
+      if (hasDrawnToday) {
+        Alert.alert(
+          "Daily Tarot Reading",
+          "You've already drawn your card for today. Please come back tomorrow for a new reading!",
+          [{ text: "OK", style: "default" }]
+        );
+      } else {
+        navigation.navigate('TarotCards');
+      }
+    } catch (error) {
+      console.error('Error checking tarot status:', error);
+      // If there's an error, we'll allow navigation as a fallback
+      navigation.navigate('TarotCards');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -224,7 +245,7 @@ const MainScreen = ({ route, navigation }) => {
       <View style={styles.bottomNav}>
         <TouchableOpacity 
           style={styles.navItem}
-          onPress={() => navigation.navigate('TarotCards')}
+          onPress={handleTarotNavigation}
         >
           <Text style={styles.navIcon}>🔥</Text>
         </TouchableOpacity>
