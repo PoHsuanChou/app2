@@ -143,17 +143,25 @@ const MainScreen = ({ route, navigation }) => {
     ]).start(() => setShowNotification(false));
   };
 
-  const handleTarotNavigation = () => {
+  const handleTarotNavigation = async () => {
+    console.log('handleTarotNavigation');
     // Get this value from your API or state management
-    const hasDrawnTodayCard = true; // Replace with actual logic
-
-    if (hasDrawnTodayCard) {
-      // Replace the alert with our new notification
-      showTarotNotification();
-      return;
+    try {
+      const dailyTarotStatus = await checkDailyTarotStatus();
+      console.log('dailyTarotStatus:', dailyTarotStatus);
+      
+      if (dailyTarotStatus) {
+        // Replace the alert with our new notification
+        showTarotNotification();
+        return;
+      }
+      
+      navigation.navigate('TarotCards');
+    } catch (error) {
+      console.error('Error checking tarot status:', error);
+      // Fallback behavior - navigate anyway if there's an error
+      navigation.navigate('TarotCards');
     }
-    
-    navigation.navigate('TarotCards');
   };
 
   return (

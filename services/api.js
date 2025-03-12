@@ -164,6 +164,7 @@ export const fetchMatchesAndMessages = async () => {
 
 export const checkDailyTarotStatus = async () => {
   try {
+    console.log('Checking daily tarot status');
     const token = await AsyncStorage.getItem('userToken');
     const response = await fetch(`${BASE_URL}/api/cards/check-draw`, {
       method: 'GET',
