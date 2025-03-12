@@ -84,7 +84,7 @@ const ChatScreen = ({ navigation, route }) => {
       >
         {!item.isUser && (
           <Image
-            source={require('../assets/tarot-ai-avatar.png')}
+            source={require('../../assets/tarot-ai-avatar.png')}
             style={styles.avatar}
           />
         )}

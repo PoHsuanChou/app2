@@ -2,21 +2,22 @@ import React from 'react';
 import { StyleSheet, Text, View, Button } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import LoginScreen from './screens/LoginScreen';
-import NicknameScreen from './screens/NicknameScreen';
-import GenderScreen from './screens/GenderScreen';
-import BirthdayScreen from './screens/BirthdayScreen';
-import TarotDeckScreen from './screens/TarotDeckScreen';
-import ChatScreen from './screens/ChatScreen';
-import MainScreen from './screens/MainScreen';
-import TarotCardsScreen from './screens/TarotCardsScreen';
-import SettingsScreen from './screens/SettingsScreen';
-import ProfilePictureScreen from './screens/ProfilePictureScreen';
-import DatingScreen from './screens/DatingScreen';
-import CardRevealScreen from './screens/CardRevealScreen';
-import MatchChatScreen from './screens/MatchChatScreen';
-import InterestsScreen from './screens/InterestsScreen';
-import UserProfileScreen from './screens/UserProfileScreen';
+import LoginScreen from './screens/auth/LoginScreen';
+import NicknameScreen from './screens/register/NicknameScreen';
+import GenderScreen from './screens/register/GenderScreen';
+import BirthdayScreen from './screens/register/BirthdayScreen';
+// import TarotDeckScreen from './screens/register/TarotDeckScreen';
+import ChatScreen from './screens/dating/ChatScreen';
+import MainScreen from './screens/main/MainScreen';
+import TarotCardsScreen from './screens/tarot/TarotCardsScreen';
+import SettingsScreen from './screens/profile/SettingsScreen';
+import ProfilePictureScreen from './screens/register/ProfilePictureScreen';
+import DatingScreen from './screens/dating/DatingScreen';
+import CardRevealScreen from './screens/tarot/CardRevealScreen';
+import MatchChatScreen from './screens/dating/MatchChatScreen';
+import InterestsScreen from './screens/register/InterestsScreen';
+import UserProfileScreen from './screens/register/UserProfileScreen';
+import ReadyToRegisterScreen from './screens/register/ReadyToRegisterScreen';
 
 const Stack = createStackNavigator();
 
@@ -59,7 +60,7 @@ function App() {
         <Stack.Screen name="Gender" component={GenderScreen} />
         <Stack.Screen name="Birthday" component={BirthdayScreen} />
         <Stack.Screen name="ProfilePicture" component={ProfilePictureScreen} />
-        <Stack.Screen name="TarotDeck" component={TarotDeckScreen} />
+        <Stack.Screen name="TarotDeck" component={ReadyToRegisterScreen} />
         <Stack.Screen 
           name="Chat" 
           component={ChatScreen}

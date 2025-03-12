@@ -93,7 +93,7 @@ const CardRevealScreen = ({ navigation, route }) => {
       <View style={styles.cardContainer}>
         <Animated.View style={[styles.cardFace, frontAnimatedStyle]}>
           <Image
-            source={require('../assets/card-back.png')}
+            source={require('../../assets/card-back.png')}
             style={styles.cardImage}
             resizeMode="contain"
           />

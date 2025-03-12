@@ -212,4 +212,65 @@ export const tarotApi = {
   },
   
   // 你可以在這裡添加其他塔羅牌相關的 API 方法
+};
+
+/**
+ * Updates the user's profile picture
+ * @param {Object} data - The profile data
+ * @param {string} data.profileImage - The URI of the profile image
+ * @returns {Promise<Object>} - Response from the server
+ */
+export const updateProfilePicture = async (data) => {
+  try {
+    // Get the user token from storage
+    const token = await AsyncStorage.getItem('userToken');
+    
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+    
+    // Create a FormData object to send the image
+    const formData = new FormData();
+    
+    // Add the image to the form data
+    const imageUri = data.profileImage;
+    const filename = imageUri.split('/').pop();
+    
+    // Infer the type of the image
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+    
+    formData.append('profileImage', {
+      uri: imageUri,
+      name: filename,
+      type,
+    });
+    
+    // Make the API request
+    const response = await fetch(`${BASE_URL}/user/profile-picture`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+      body: formData,
+    });
+    
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(responseData.message || 'Failed to update profile picture');
+    }
+    
+    return {
+      success: true,
+      data: responseData,
+    };
+  } catch (error) {
+    console.error('Error updating profile picture:', error);
+    return {
+      success: false,
+      message: error.message || 'Something went wrong',
+    };
+  }
 }; 

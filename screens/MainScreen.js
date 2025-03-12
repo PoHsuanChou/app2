@@ -28,9 +28,9 @@ const MainScreen = ({ route, navigation }) => {
   // Fake data as a fallback
   const fakeMatches = [
     { id: 'likes', count: 98, type: 'Likes' },
-    { id: '1', name: 'Vivi', verified: true, image: require('../assets/placeholder.png') },
-    { id: '2', name: 'Luna', image: require('../assets/placeholder.png') },
-    { id: '3', name: 'Donna', image: require('../assets/placeholder.png') },
+    { id: '1', name: 'Vivi', verified: true, image: require('../../assets/placeholder.png') },
+    { id: '2', name: 'Luna', image: require('../../assets/placeholder.png') },
+    { id: '3', name: 'Donna', image: require('../../assets/placeholder.png') },
   ];
 
   const fakeMessages = [
@@ -38,7 +38,7 @@ const MainScreen = ({ route, navigation }) => {
       id: '1', 
       name: 'Kelly', 
       message: 'Recently active, match now!',
-      image: require('../assets/placeholder.png'),
+      image: require('../../assets/placeholder.png'),
       email: 'test@test.com'
 
     },
@@ -46,14 +46,14 @@ const MainScreen = ({ route, navigation }) => {
       id: '2', 
       name: 'Ann', 
       message: 'Hello Ann',
-      image: require('../assets/placeholder.png'),
+      image: require('../../assets/placeholder.png'),
       email: 'test@test.com'
     },
     { 
       id: '3', 
       name: 'R', 
       message: 'Heyyyy',
-      image: require('../assets/placeholder.png'),
+      image: require('../../assets/placeholder.png'),
       email: 'test@test.com',
       yourTurn: true 
     },
@@ -79,7 +79,7 @@ const MainScreen = ({ route, navigation }) => {
           const transformedMatches = matches.map(match => ({
             id: match.id,
             name: match.name || 'Anonymous',
-            image: match.image ? { uri: `https://api.quin.world/uploads/${match.image}` } : require('../assets/placeholder.png'),
+            image: match.image ? { uri: `https://api.quin.world/uploads/${match.image}` } : require('../../assets/placeholder.png'),
             count: match.count,
             type: match.id === 'likes' ? 'Likes' : undefined
           }));
@@ -120,7 +120,7 @@ const MainScreen = ({ route, navigation }) => {
   const testChatData = {
     id: 'test123',
     name: 'Test User',
-    image: require('../assets/placeholder.png'),
+    image: require('../../assets/placeholder.png'),
     verified: true,
     message: 'Hello! This is a test chat.',
   };
