@@ -11,7 +11,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
-import { registerUser } from '../../services/api';
+import { registerUser, uploadProfileImage, deleteUploadedImage } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
@@ -74,6 +74,8 @@ const ReadyToRegisterScreen = ({ navigation, route }) => {
       return;
     }
 
+    let uploadedImageUrl = null;
+
     try {
       setIsRegistering(true);
       
@@ -94,7 +96,13 @@ const ReadyToRegisterScreen = ({ navigation, route }) => {
         return date.toISOString();
       };
 
-      // 准备注册数据
+      console.log("rrrrrr: ",route.params.profileImage)
+
+      // Upload the profile image
+      const imageUploadResponse = await uploadProfileImage(route.params.profileImage);
+      uploadedImageUrl = imageUploadResponse.url; // Assuming the response contains the URL of the uploaded image
+
+      // Prepare registration data
       const registrationData = {
         email: route.params.email,
         password: route.params.password || null,
@@ -103,14 +111,14 @@ const ReadyToRegisterScreen = ({ navigation, route }) => {
         gender: route.params.gender,
         birthday: formatBirthday(route.params.birthday),
         zodiacSign: route.params.birthday.zodiacSign,
-        profileImage: route.params.profileImage,
+        // profileImage: uploadedImageUrl, // Use the URL of the uploaded image
         interests: route.params.interests,
         isGoogleLogin: route.params.isGoogleLogin
       };
 
       console.log('Sending registration data:', registrationData);
 
-      // 发送注册请求
+      // Send registration request
       const response = await fetch('http://localhost:8080/api/auth/register', {
         method: 'POST',
         headers: {
@@ -126,14 +134,14 @@ const ReadyToRegisterScreen = ({ navigation, route }) => {
         throw new Error(data.message || 'Registration failed');
       }
 
-      // 检查响应是否成功
+      // Check if the response is successful
       if (data.success) {
-        // 保存 token
+        // Save token
         if (data.token) {
           await AsyncStorage.setItem('userToken', data.token);
         }
 
-        // 导航到主页面
+        // Navigate to the main page
         navigation.navigate('Main', { 
           userData: data.user,
           token: data.token,
@@ -147,6 +155,15 @@ const ReadyToRegisterScreen = ({ navigation, route }) => {
     } catch (error) {
       console.error('Error registering user:', error);
       Alert.alert('Error', error.message || 'Failed to complete registration');
+
+      // Delete the uploaded image if registration fails
+      if (uploadedImageUrl) {
+        try {
+          await deleteUploadedImage(uploadedImageUrl);
+        } catch (deleteError) {
+          console.error('Error deleting uploaded image:', deleteError);
+        }
+      }
     } finally {
       setIsRegistering(false);
     }

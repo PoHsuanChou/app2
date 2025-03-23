@@ -1,6 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
+import axios from 'axios';
 
-const BASE_URL = 'http://localhost:8080'; // Replace with your actual backend URL
+const BASE_URL = 'http://192.168.68.52:8080';
 
 export const registerUser = async (userData) => {
   try {
@@ -222,55 +226,156 @@ export const tarotApi = {
  */
 export const updateProfilePicture = async (data) => {
   try {
-    // Get the user token from storage
     const token = await AsyncStorage.getItem('userToken');
-    
     if (!token) {
       throw new Error('Authentication required');
     }
-    
-    // Create a FormData object to send the image
-    const formData = new FormData();
-    
-    // Add the image to the form data
+    console.log('Token:', token);
     const imageUri = data.profileImage;
-    const filename = imageUri.split('/').pop();
-    
-    // Infer the type of the image
-    const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : 'image/jpeg';
-    
+    console.log('Original image URI:', imageUri);
+
+    // Compress and resize the image
+    const manipResult = await ImageManipulator.manipulateAsync(
+      imageUri,
+      [{ resize: { width: 800 } }],
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+    );
+
+    // Create form data with the correct file information
+    const formData = new FormData();
     formData.append('profileImage', {
-      uri: imageUri,
-      name: filename,
-      type,
+      uri: manipResult.uri,
+      type: 'image/jpeg',
+      name: 'profileImage.jpg',  // Ensure this matches backend expectation
     });
-    
-    // Make the API request
-    const response = await fetch(`${BASE_URL}/user/profile-picture`, {
+
+    console.log('FormData:', formData);
+
+    const response = await fetch(`${BASE_URL}/api/user/profile-picture`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    console.log('Response status:', response.status);
+    const responseData = await response.json();
+    console.log('Response data:', responseData);
+
+    if (!response.ok) {
+      throw new Error(responseData.message || 'Failed to update profile picture');
+    }
+
+    return { success: true, data: responseData };
+  } catch (error) {
+    console.error('Upload error:', error);
+    return { success: false, message: error.message || 'Something went wrong' };
+  }
+};
+
+export const uploadProfileImage = async (imageUri) => {
+  try {
+    // Compress and resize the image
+    const manipResult = await ImageManipulator.manipulateAsync(
+      imageUri,
+      [{ resize: { width: 800 } }],
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+    );
+
+    // Create form data with the correct file information
+    const formData = new FormData();
+    formData.append('profileImage', {
+      uri: manipResult.uri,
+      type: 'image/jpeg',
+      name: 'profileImage.jpg',  // Ensure this matches backend expectation
+    });
+
+    console.log("wefwefwefwef: ", formData);
+
+    // Send the image to the server
+    const response = await fetch(`${BASE_URL}/api/user/profile-picture`, {
+      method: 'POST',
+      headers: {
         'Content-Type': 'multipart/form-data',
       },
       body: formData,
     });
-    
-    const responseData = await response.json();
-    
+
     if (!response.ok) {
-      throw new Error(responseData.message || 'Failed to update profile picture');
+      throw new Error('Failed to upload image');
     }
-    
-    return {
-      success: true,
-      data: responseData,
-    };
+
+    return await response.json();
   } catch (error) {
-    console.error('Error updating profile picture:', error);
+    console.error('Error uploading image:', error);
+    throw error;
+  }
+};
+
+export const deleteUploadedImage = async (imageUrl) => {
+  try {
+    const response = await fetch(`${BASE_URL}/api/delete-image`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ imageUrl }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete image');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    throw error;
+  }
+};
+
+// Function to get the user's profile image
+export const getUserProfileImage = async () => {
+  try {
+    console.log('Fetching profile image');
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    // Fetch the image URL
+    const response = await fetch(`${BASE_URL}/api/user/profile-picture/current`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.status === 200) {
+      const data = await response.json();
+      console.log('Got image URL:', data.message);
+
+      // Append the token as a query parameter
+      const imageUrl = `${data.message}?auth=${encodeURIComponent(token)}`;
+
+      return {
+        success: true,
+        imageUrl: imageUrl
+      };
+    } else {
+      console.log('Profile image fetch failed');
+      const errorData = await response.json();
+      console.log('Error Response:', errorData);
+      return {
+        success: false,
+        message: 'Failed to fetch profile image',
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching profile image:', error);
     return {
       success: false,
-      message: error.message || 'Something went wrong',
+      message: error.message || 'An error occurred while fetching the profile image',
     };
   }
 }; 

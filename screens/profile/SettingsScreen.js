@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,45 @@ import {
   ScrollView,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { updateUserProfile, updateProfilePicture } from '../../services/api';
+import { updateUserProfile, updateProfilePicture, getUserProfileImage } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SettingsScreen = ({ navigation, route }) => {
   const [profileImage, setProfileImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [token, setToken] = useState(null);
+
+  useEffect(() => {
+    const fetchToken = async () => {
+      const userToken = await AsyncStorage.getItem('userToken');
+      setToken(userToken);
+    };
+    fetchToken();
+  }, []);
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      try {
+        setIsLoading(true);
+        const response = await getUserProfileImage();
+        if (response.success) {
+          console.log('Complete image URL:', response.imageUrl);
+          setProfileImage(response.imageUrl);
+          console.log('Profile Image State:', profileImage);
+        } else {
+          Alert.alert('Error', response.message || 'Failed to fetch profile image');
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Something went wrong while fetching the profile image');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (token) {
+      fetchProfileImage();
+    }
+  }, [token]);
 
   const pickImage = async () => {
     try {
@@ -106,8 +139,21 @@ const SettingsScreen = ({ navigation, route }) => {
         {/* Profile Picture Section */}
         <View style={styles.profileSection}>
           <TouchableOpacity onPress={pickImage} style={styles.imageContainer}>
-            {profileImage ? (
-              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+            {profileImage && token ? (
+              <>
+                <Image 
+                  source={{ 
+                    uri: profileImage
+                  }} 
+                  style={styles.profileImage}
+                  onError={(error) => {
+                    console.log('Image loading error:', error.nativeEvent.error);
+                    Alert.alert('Error', 'Failed to load image');
+                  }}
+                  defaultSource={require('../../assets/icon.png')}
+                />
+                {console.log('Rendering image with URI:', profileImage)}
+              </>
             ) : (
               <View style={styles.placeholderImage}>
                 <Text style={styles.placeholderText}>Add Photo</Text>
@@ -166,6 +212,9 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
+    backgroundColor: '#ccc',
+    borderWidth: 1,
+    borderColor: '#fff',
   },
   placeholderImage: {
     width: 120,
