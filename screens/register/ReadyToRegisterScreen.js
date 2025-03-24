@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { registerUser, uploadProfileImage, deleteUploadedImage } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 const { width, height } = Dimensions.get('window');
 
@@ -95,45 +96,52 @@ const ReadyToRegisterScreen = ({ navigation, route }) => {
         // 返回 ISO 字符串，Spring Boot 可以直接解析
         return date.toISOString();
       };
+// Create FormData for registration
+const formData = new FormData();
+    
+// Add basic registration data
+formData.append('email', route.params.email);
+formData.append('password', route.params.password || '');
+formData.append('nickname', route.params.nickname);
+formData.append('bio', route.params.bio);
+formData.append('gender', route.params.gender);
+formData.append('birthday', formatBirthday(route.params.birthday));
+formData.append('zodiacSign', route.params.birthday.zodiacSign);
+formData.append('interests', JSON.stringify(route.params.interests)); // Convert array to string
+formData.append('isGoogleLogin', route.params.isGoogleLogin.toString());
 
-      console.log("rrrrrr: ",route.params.profileImage)
+// Add profile image if exists
+if (route.params.profileImage) {
+  const imageUri = route.params.profileImage;
+  console.log('Original image URI:', imageUri);
 
-      // Upload the profile image
-      const imageUploadResponse = await uploadProfileImage(route.params.profileImage);
-      uploadedImageUrl = imageUploadResponse.url; // Assuming the response contains the URL of the uploaded image
+  // Compress and resize the image
+  
+  const manipResult = await ImageManipulator.manipulateAsync(
+    imageUri,
+    [{ resize: { width: 800 } }],
+    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+  );
 
-      // Prepare registration data
-      const registrationData = {
-        email: route.params.email,
-        password: route.params.password || null,
-        nickname: route.params.nickname,
-        bio: route.params.bio,
-        gender: route.params.gender,
-        birthday: formatBirthday(route.params.birthday),
-        zodiacSign: route.params.birthday.zodiacSign,
-        // profileImage: uploadedImageUrl, // Use the URL of the uploaded image
-        interests: route.params.interests,
-        isGoogleLogin: route.params.isGoogleLogin
-      };
+  formData.append('profileImage', {
+    uri: manipResult.uri,
+    type: 'image/jpeg',
+    name: 'profileImage.jpg',
+  });
+}
 
-      console.log('Sending registration data:', registrationData);
+console.log('Sending registration data:', formData);
 
-      // Send registration request
-      const response = await fetch('http://localhost:8080/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(registrationData)
-      });
-
-      const data = await response.json();
-      console.log('gggggg:', data);
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
-      }
-
+// Send registration request with both data and image
+const response = await fetch('http://localhost:8080/api/auth/register', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'multipart/form-data',
+  },
+  body: formData,
+});
+const data = await response.json();
+    console.log('Registration response:', data);
       // Check if the response is successful
       if (data.success) {
         // Save token

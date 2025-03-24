@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,13 +11,19 @@ import {
   TouchableOpacity,
   Easing,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchDatingUsers } from '../../services/api';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SWIPE_THRESHOLD = 120;
+const BASE_URL = 'http://192.168.68.52:8080'; // 使用與 api.js 相同的 BASE_URL
 
 const DatingScreen = ({ navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const position = useRef(new Animated.ValueXY()).current;
   const lastGesture = useRef({ dx: 0, dy: 0 });
   const rotation = position.x.interpolate({
@@ -29,24 +35,25 @@ const DatingScreen = ({ navigation }) => {
   const matchOpacity = useRef(new Animated.Value(0)).current;
   const sparklesOpacity = useRef(new Animated.Value(0)).current;
 
-  // Sample users data - replace with your API data
-  const users = [
-    {
-      id: 1,
-      name: 'Sarah',
-      age: 25,
-      image: require('../../assets/placeholder.png'),
-      bio: 'Love traveling and coffee ✈️☕',
-    },
-    {
-      id: 2,
-      name: 'Jessica',
-      age: 23,
-      image: require('../../assets/placeholder.png'),
-      bio: 'Artist | Dog lover 🎨🐕',
-    },
-    // Add more users...
-  ];
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const currentUserId = await AsyncStorage.getItem('userId') || 'defaultUserId'; // 從 AsyncStorage 獲取
+      const fetchedUsers = await fetchDatingUsers(currentUserId);
+      console.log("Fetched users: ", fetchedUsers);
+      setUsers(fetchedUsers || []);
+    } catch (err) {
+      setError('無法載入用戶資料');
+      console.error('Error loading users:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const panResponder = useRef(
     PanResponder.create({
@@ -74,20 +81,17 @@ const DatingScreen = ({ navigation }) => {
     sparklesOpacity.setValue(0);
 
     Animated.parallel([
-      // Scale up the "It's a Match!" text
       Animated.spring(matchScale, {
         toValue: 1,
         friction: 6,
         tension: 40,
         useNativeDriver: true,
       }),
-      // Fade in the overlay and text
       Animated.timing(matchOpacity, {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
       }),
-      // Sparkle animation
       Animated.sequence([
         Animated.delay(300),
         Animated.timing(sparklesOpacity, {
@@ -99,27 +103,69 @@ const DatingScreen = ({ navigation }) => {
     ]).start();
   };
 
-  const swipeRight = () => {
-    Animated.timing(position, {
-      toValue: { x: SCREEN_WIDTH + 100, y: lastGesture.current.dy },
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      // Show match animation randomly or based on your logic
-      if (Math.random() < 0.5) { // 50% chance of match
-        showMatchAnimation();
-      } else {
-        nextCard();
+  const swipeRight = async () => {
+    try {
+      const currentUserId = await AsyncStorage.getItem('userId') || 'defaultUserId';
+      const response = await fetch(`${BASE_URL}/api/dating/swipe`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${await AsyncStorage.getItem('userToken')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: currentUserId,
+          targetUserId: users[currentIndex].id,
+          action: 'LIKE',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Swipe failed');
       }
-    });
+
+      const data = await response.json();
+      Animated.timing(position, {
+        toValue: { x: SCREEN_WIDTH + 100, y: lastGesture.current.dy },
+        duration: 250,
+        useNativeDriver: true,
+      }).start(() => {
+        if (data.isMatch) {
+          showMatchAnimation();
+        } else {
+          nextCard();
+        }
+      });
+    } catch (error) {
+      console.error('Swipe right error:', error);
+      resetPosition();
+    }
   };
 
-  const swipeLeft = () => {
-    Animated.timing(position, {
-      toValue: { x: -SCREEN_WIDTH - 100, y: lastGesture.current.dy },
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => nextCard());
+  const swipeLeft = async () => {
+    try {
+      const currentUserId = await AsyncStorage.getItem('userId') || 'defaultUserId';
+      await fetch(`${BASE_URL}/api/dating/swipe`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${await AsyncStorage.getItem('userToken')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: currentUserId,
+          targetUserId: users[currentIndex].id,
+          action: 'DISLIKE',
+        }),
+      });
+
+      Animated.timing(position, {
+        toValue: { x: -SCREEN_WIDTH - 100, y: lastGesture.current.dy },
+        duration: 250,
+        useNativeDriver: true,
+      }).start(() => nextCard());
+    } catch (error) {
+      console.error('Swipe left error:', error);
+      resetPosition();
+    }
   };
 
   const resetPosition = () => {
@@ -135,21 +181,49 @@ const DatingScreen = ({ navigation }) => {
   };
 
   const renderCard = () => {
-    if (currentIndex >= users.length) {
+    if (loading) {
       return (
         <View style={styles.noMoreCards}>
-          <Text style={styles.noMoreCardsText}>No more profiles</Text>
-          <TouchableOpacity 
+          <Text style={styles.noMoreCardsText}>載入中...</Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={styles.noMoreCards}>
+          <Text style={styles.noMoreCardsText}>{error}</Text>
+          <TouchableOpacity style={styles.refreshButton} onPress={loadUsers}>
+            <Text style={styles.refreshButtonText}>重試</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (!users || currentIndex >= users.length) {
+      return (
+        <View style={styles.noMoreCards}>
+          <Text style={styles.noMoreCardsText}>沒有更多用戶了</Text>
+          <TouchableOpacity
             style={styles.refreshButton}
-            onPress={() => setCurrentIndex(0)}
+            onPress={() => {
+              setCurrentIndex(0);
+              loadUsers();
+            }}
           >
-            <Text style={styles.refreshButtonText}>Refresh</Text>
+            <Text style={styles.refreshButtonText}>重新整理</Text>
           </TouchableOpacity>
         </View>
       );
     }
 
     const user = users[currentIndex];
+    
+    // 處理圖片 URL
+    const imageUrl = user.image.startsWith('http') 
+      ? user.image 
+      : `${BASE_URL}/static/uploads/${user.image.split('/').pop()}`;
+
     const likeOpacity = position.x.interpolate({
       inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
       outputRange: [0, 0, 1],
@@ -175,10 +249,18 @@ const DatingScreen = ({ navigation }) => {
           },
         ]}
       >
-        <Image source={user.image} style={styles.cardImage} />
+        <Image 
+          source={{ uri: imageUrl }}
+          style={styles.cardImage}
+          // 添加加載指示器和錯誤處理
+          loadingIndicatorSource={require('../../assets/placeholder.png')}
+          onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
+        />
         <View style={styles.cardContent}>
-          <Text style={styles.name}>{user.name}, {user.age}</Text>
-          <Text style={styles.bio}>{user.bio}</Text>
+          <Text style={styles.name}>
+            {user.name}, {user.age}
+          </Text>
+          <Text style={styles.bio}>{user.bio || 'No bio available'}</Text>
         </View>
 
         <Animated.View style={[styles.likeStamp, { opacity: likeOpacity }]}>
@@ -194,62 +276,44 @@ const DatingScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Discover</Text>
       </View>
 
-      <View style={styles.cardContainer}>
-        {renderCard()}
-      </View>
+      <View style={styles.cardContainer}>{renderCard()}</View>
 
       {showMatch && (
-        <Animated.View 
-          style={[
-            styles.matchOverlay,
-            { opacity: matchOpacity }
-          ]}
-        >
+        <Animated.View style={[styles.matchOverlay, { opacity: matchOpacity }]}>
           <Animated.Image
             source={require('../../assets/tarot-ai-avatar.png')}
             style={[
               styles.sparkles,
               {
                 opacity: sparklesOpacity,
-                transform: [{ scale: matchScale }]
-              }
+                transform: [{ scale: matchScale }],
+              },
             ]}
           />
-          <Animated.Text 
-            style={[
-              styles.matchText,
-              {
-                transform: [{ scale: matchScale }]
-              }
-            ]}
-          >
+          <Animated.Text style={[styles.matchText, { transform: [{ scale: matchScale }] }]}>
             It's a Match!
           </Animated.Text>
-          <Animated.View 
-            style={[
-              styles.matchProfiles,
-              { opacity: sparklesOpacity }
-            ]}
-          >
-            <Image 
-              source={users[currentIndex].image}
+          <Animated.View style={[styles.matchProfiles, { opacity: sparklesOpacity }]}>
+            <Image
+              source={{ 
+                uri: users[currentIndex].image.startsWith('http')
+                  ? users[currentIndex].image
+                  : `${BASE_URL}/static/uploads/${users[currentIndex].image.split('/').pop()}`
+              }}
               style={styles.matchProfile}
             />
-            <Image 
+            <Image
               source={require('../../assets/tarot-ai-avatar.png')}
               style={styles.matchProfile}
             />
           </Animated.View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.keepSwiping}
             onPress={() => {
               setShowMatch(false);
@@ -262,10 +326,10 @@ const DatingScreen = ({ navigation }) => {
       )}
 
       <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.button} onPress={() => swipeLeft()}>
+        <TouchableOpacity style={styles.button} onPress={swipeLeft}>
           <Text style={styles.buttonIcon}>✕</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => swipeRight()}>
+        <TouchableOpacity style={styles.button} onPress={swipeRight}>
           <Text style={styles.buttonIcon}>♥</Text>
         </TouchableOpacity>
       </View>
@@ -318,6 +382,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '80%',
     resizeMode: 'cover',
+    backgroundColor: '#2A2A2A',
   },
   cardContent: {
     padding: 20,
@@ -340,18 +405,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#333',
     backgroundColor: '#000',
-  },
-  navItem: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#333',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  navIcon: {
-    fontSize: 24,
-    color: 'white',
   },
   button: {
     width: 60,
@@ -455,4 +508,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DatingScreen; 
+export default DatingScreen;

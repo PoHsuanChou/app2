@@ -378,4 +378,33 @@ export const getUserProfileImage = async () => {
       message: error.message || 'An error occurred while fetching the profile image',
     };
   }
+};
+
+/**
+ * 獲取推薦的約會用戶列表
+ * @param {number} page - 頁碼，從0開始
+ * @param {number} limit - 每頁數量
+ * @returns {Promise<Array>} 用戶列表
+ */
+export const fetchDatingUsers = async (page = 0, limit = 10) => {
+  try {
+    const response = await fetch(`${BASE_URL}/api/dating/recommand`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${await AsyncStorage.getItem('userToken')}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch dating users');
+    }
+
+    const data = await response.json();
+    console.log("erfgefgwefg: ",data )
+    return data;
+  } catch (error) {
+    console.error('Error fetching dating users:', error);
+    throw error;
+  }
 }; 
