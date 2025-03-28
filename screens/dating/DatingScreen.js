@@ -12,12 +12,12 @@ import {
   Easing,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchDatingUsers } from '../../services/api';
+import { fetchDatingUsers, swipeUser } from '../../services/api';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SWIPE_THRESHOLD = 120;
-const BASE_URL = 'http://192.168.68.52:8080'; // 使用與 api.js 相同的 BASE_URL
+const BASE_URL = 'http://192.168.68.52:8080';
 
 const DatingScreen = ({ navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -34,6 +34,9 @@ const DatingScreen = ({ navigation }) => {
   const matchScale = useRef(new Animated.Value(0)).current;
   const matchOpacity = useRef(new Animated.Value(0)).current;
   const sparklesOpacity = useRef(new Animated.Value(0)).current;
+  
+  // 使用useRef来保存最新的用户数据，避免异步操作中的状态问题
+  const usersRef = useRef([]);
 
   useEffect(() => {
     loadUsers();
@@ -43,13 +46,31 @@ const DatingScreen = ({ navigation }) => {
     try {
       setLoading(true);
       setError(null);
-      const currentUserId = await AsyncStorage.getItem('userId') || 'defaultUserId'; // 從 AsyncStorage 獲取
+      const currentUserId = await AsyncStorage.getItem('userId') || 'defaultUserId';
       const fetchedUsers = await fetchDatingUsers(currentUserId);
       console.log("Fetched users: ", fetchedUsers);
-      setUsers(fetchedUsers || []);
+  
+      // 确保fetchedUsers是数组
+      if (!Array.isArray(fetchedUsers)) {
+        console.log('Invalid fetched users data:', fetchedUsers);
+        setError('用户数据格式错误');
+        setUsers([]);
+        usersRef.current = [];
+      } else {
+        console.log('Setting users array with length:', fetchedUsers.length);
+        setUsers(fetchedUsers);
+        usersRef.current = fetchedUsers; // 同时更新ref
+        
+        // 验证状态更新
+        setTimeout(() => {
+          console.log('Verified users state after update:', users.length, 'usersRef:', usersRef.current.length);
+        }, 100);
+      }
     } catch (err) {
-      setError('無法載入用戶資料');
+      setError('无法加载用户资料');
       console.error('Error loading users:', err);
+      setUsers([]); // 失败时设置为空数组
+      usersRef.current = []; // 同时更新ref
     } finally {
       setLoading(false);
     }
@@ -63,11 +84,16 @@ const DatingScreen = ({ navigation }) => {
         lastGesture.current = gesture;
       },
       onPanResponderRelease: (_, gesture) => {
+        console.log('Gesture DX:', gesture.dx, 'Current index:', currentIndex, 'Users available:', usersRef.current.length);
+        
         if (gesture.dx > SWIPE_THRESHOLD) {
+          console.log('Swiping right on user:', usersRef.current[currentIndex]?.id);
           swipeRight();
         } else if (gesture.dx < -SWIPE_THRESHOLD) {
+          console.log('Swiping left on user:', usersRef.current[currentIndex]?.id);
           swipeLeft();
         } else {
+          console.log('Resetting position');
           resetPosition();
         }
       },
@@ -104,26 +130,36 @@ const DatingScreen = ({ navigation }) => {
   };
 
   const swipeRight = async () => {
+    console.log('Before swipeRight - currentIndex:', currentIndex, 'users state length:', users.length, 'usersRef length:', usersRef.current.length);
+    
+    // 使用ref获取最新的用户数据
+    const currentUsers = usersRef.current;
+    const indexToProcess = currentIndex;
+    
     try {
-      const currentUserId = await AsyncStorage.getItem('userId') || 'defaultUserId';
-      const response = await fetch(`${BASE_URL}/api/dating/swipe`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${await AsyncStorage.getItem('userToken')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: currentUserId,
-          targetUserId: users[currentIndex].id,
-          action: 'LIKE',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Swipe failed');
+      // 检查用户数据是否有效
+      if (!currentUsers || currentUsers.length === 0 || indexToProcess < 0 || indexToProcess >= currentUsers.length) {
+        console.log('Invalid state - users length:', currentUsers?.length, 'indexToProcess:', indexToProcess);
+        setError('没有可滑动的用户');
+        resetPosition();
+        return;
       }
-
-      const data = await response.json();
+  
+      const currentUser = currentUsers[indexToProcess];
+      if (!currentUser || !currentUser.id) {
+        console.log('Invalid user or missing ID at index:', indexToProcess);
+        setError('用户数据无效');
+        resetPosition();
+        return;
+      }
+  
+      const currentUserId = await AsyncStorage.getItem('userId') || 'defaultUserId';
+      const targetUserId = currentUser.id;
+      console.log('Swiping right on user ID:', targetUserId);
+  
+      const data = await swipeUser(currentUserId, targetUserId, 'LIKE');
+      console.log('Swipe right result:', data);
+  
       Animated.timing(position, {
         toValue: { x: SCREEN_WIDTH + 100, y: lastGesture.current.dy },
         duration: 250,
@@ -137,26 +173,41 @@ const DatingScreen = ({ navigation }) => {
       });
     } catch (error) {
       console.error('Swipe right error:', error);
+      setError('无法完成右滑操作，请稍后重试');
       resetPosition();
     }
   };
 
   const swipeLeft = async () => {
+    console.log('Before swipeLeft - currentIndex:', currentIndex, 'users state length:', users.length, 'usersRef length:', usersRef.current.length);
+    
+    // 使用ref获取最新的用户数据
+    const currentUsers = usersRef.current;
+    const indexToProcess = currentIndex;
+    
     try {
+      // 检查用户数据是否有效
+      if (!currentUsers || currentUsers.length === 0 || indexToProcess < 0 || indexToProcess >= currentUsers.length) {
+        console.log('Invalid state - users length:', currentUsers?.length, 'indexToProcess:', indexToProcess);
+        setError('没有可滑动的用户');
+        resetPosition();
+        return;
+      }
+  
+      const currentUser = currentUsers[indexToProcess];
+      if (!currentUser || !currentUser.id) {
+        console.log('Invalid user or missing ID at index:', indexToProcess);
+        setError('用户数据无效');
+        resetPosition();
+        return;
+      }
+  
       const currentUserId = await AsyncStorage.getItem('userId') || 'defaultUserId';
-      await fetch(`${BASE_URL}/api/dating/swipe`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${await AsyncStorage.getItem('userToken')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: currentUserId,
-          targetUserId: users[currentIndex].id,
-          action: 'DISLIKE',
-        }),
-      });
-
+      const targetUserId = currentUser.id;
+      console.log('Swiping left on user ID:', targetUserId);
+  
+      await swipeUser(currentUserId, targetUserId, 'DISLIKE');
+  
       Animated.timing(position, {
         toValue: { x: -SCREEN_WIDTH - 100, y: lastGesture.current.dy },
         duration: 250,
@@ -164,6 +215,7 @@ const DatingScreen = ({ navigation }) => {
       }).start(() => nextCard());
     } catch (error) {
       console.error('Swipe left error:', error);
+      setError('无法完成左滑操作，请稍后重试');
       resetPosition();
     }
   };
@@ -176,7 +228,14 @@ const DatingScreen = ({ navigation }) => {
   };
 
   const nextCard = () => {
-    setCurrentIndex(currentIndex + 1);
+    const nextIndex = currentIndex + 1;
+    console.log('Moving to next card - nextIndex:', nextIndex, 'users length:', usersRef.current.length);
+    if (nextIndex >= usersRef.current.length) {
+      console.log('No more users available');
+      setCurrentIndex(nextIndex); // 允许超出，但UI会显示"没有更多用户"
+    } else {
+      setCurrentIndex(nextIndex);
+    }
     position.setValue({ x: 0, y: 0 });
   };
 
@@ -184,7 +243,7 @@ const DatingScreen = ({ navigation }) => {
     if (loading) {
       return (
         <View style={styles.noMoreCards}>
-          <Text style={styles.noMoreCardsText}>載入中...</Text>
+          <Text style={styles.noMoreCardsText}>载入中...</Text>
         </View>
       );
     }
@@ -194,16 +253,17 @@ const DatingScreen = ({ navigation }) => {
         <View style={styles.noMoreCards}>
           <Text style={styles.noMoreCardsText}>{error}</Text>
           <TouchableOpacity style={styles.refreshButton} onPress={loadUsers}>
-            <Text style={styles.refreshButtonText}>重試</Text>
+            <Text style={styles.refreshButtonText}>重试</Text>
           </TouchableOpacity>
         </View>
       );
     }
 
-    if (!users || currentIndex >= users.length) {
+    // 使用usersRef检查还有没有用户
+    if (!usersRef.current || usersRef.current.length === 0 || currentIndex >= usersRef.current.length) {
       return (
         <View style={styles.noMoreCards}>
-          <Text style={styles.noMoreCardsText}>沒有更多用戶了</Text>
+          <Text style={styles.noMoreCardsText}>没有更多用户了</Text>
           <TouchableOpacity
             style={styles.refreshButton}
             onPress={() => {
@@ -217,12 +277,10 @@ const DatingScreen = ({ navigation }) => {
       );
     }
 
-    const user = users[currentIndex];
+    const user = usersRef.current[currentIndex];
     
-    // 處理圖片 URL
-    const imageUrl = user.image.startsWith('http') 
-      ? user.image 
-      : `${BASE_URL}/static/uploads/${user.image.split('/').pop()}`;
+    // 改进图片URL处理
+    let imageUrl = user.image;
 
     const likeOpacity = position.x.interpolate({
       inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
@@ -252,7 +310,6 @@ const DatingScreen = ({ navigation }) => {
         <Image 
           source={{ uri: imageUrl }}
           style={styles.cardImage}
-          // 添加加載指示器和錯誤處理
           loadingIndicatorSource={require('../../assets/placeholder.png')}
           onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
         />
@@ -300,14 +357,19 @@ const DatingScreen = ({ navigation }) => {
             It's a Match!
           </Animated.Text>
           <Animated.View style={[styles.matchProfiles, { opacity: sparklesOpacity }]}>
-            <Image
-              source={{ 
-                uri: users[currentIndex].image.startsWith('http')
-                  ? users[currentIndex].image
-                  : `${BASE_URL}/static/uploads/${users[currentIndex].image.split('/').pop()}`
-              }}
-              style={styles.matchProfile}
-            />
+            {usersRef.current[currentIndex] && (
+              <Image
+                source={{ 
+                  uri: usersRef.current[currentIndex].image.startsWith('http')
+                    ? usersRef.current[currentIndex].image
+                    : usersRef.current[currentIndex].image.includes('localhost')
+                      ? 'http://' + usersRef.current[currentIndex].image.replace('localhost', '192.168.68.52')
+                      : `${BASE_URL}/static/uploads/${usersRef.current[currentIndex].image.split('/').pop()}`
+                }}
+                style={styles.matchProfile}
+                onError={(e) => console.log('Match profile image error:', e.nativeEvent.error)}
+              />
+            )}
             <Image
               source={require('../../assets/tarot-ai-avatar.png')}
               style={styles.matchProfile}

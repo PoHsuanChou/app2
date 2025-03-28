@@ -4,7 +4,7 @@ import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.68.52:8080';
+const BASE_URL = 'http://localhost:8080';
 
 export const registerUser = async (userData) => {
   try {
@@ -291,7 +291,6 @@ export const uploadProfileImage = async (imageUri) => {
       name: 'profileImage.jpg',  // Ensure this matches backend expectation
     });
 
-    console.log("wefwefwefwef: ", formData);
 
     // Send the image to the server
     const response = await fetch(`${BASE_URL}/api/user/profile-picture`, {
@@ -405,6 +404,32 @@ export const fetchDatingUsers = async (page = 0, limit = 10) => {
     return data;
   } catch (error) {
     console.error('Error fetching dating users:', error);
+    throw error;
+  }
+};
+
+export const swipeUser = async (currentUserId, targetUserId, action) => {
+  try {
+    const response = await fetch(`${BASE_URL}/api/dating/swipe`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${await AsyncStorage.getItem('userToken')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId: currentUserId,
+        targetUserId: targetUserId,
+        action: action,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Swipe failed');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Swipe error:', error);
     throw error;
   }
 }; 
