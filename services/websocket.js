@@ -14,6 +14,41 @@ const listeners = new Set();
 // 存儲特定目的地的訂閱
 const subscriptions = new Map();
 
+class WebSocketService {
+  constructor() {
+    this.callbacks = new Map();
+    this.socket = null;
+  }
+
+  connect() {
+    this.socket = new WebSocket('YOUR_WEBSOCKET_URL');
+    
+    this.socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      // 當收到新消息時，觸發註冊的回調
+      if (data.type === 'new_message') {
+        this.callbacks.get('onNewMessage')?.forEach(callback => callback(data.message));
+      }
+    };
+  }
+
+  // 註冊消息監聽器
+  on(event, callback) {
+    if (!this.callbacks.has(event)) {
+      this.callbacks.set(event, new Set());
+    }
+    this.callbacks.get(event).add(callback);
+  }
+
+  // 移除消息監聽器
+  off(event, callback) {
+    this.callbacks.get(event)?.delete(callback);
+  }
+}
+
+export default new WebSocketService();
+
 /**
  * Get the appropriate WebSocket URL based on environment
  * 根據環境獲取適當的 WebSocket URL

@@ -2,14 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Animated, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import SockJS from 'sockjs-client';
-import { Stomp } from '@stomp/stompjs';
-const SOCKET_URL = 'http://localhost:8080/ws';
+import WebSocketService from '../../services/websocket';
 
 const ChatScreen = ({ navigation, route }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
-  const [stompClient, setStompClient] = useState(null);
   const scrollViewRef = useRef();
   
   // 假設這些值從路由參數或登入狀態獲取
@@ -18,57 +15,18 @@ const ChatScreen = ({ navigation, route }) => {
   const { matchData, userData } = route.params;
 
   useEffect(() => {
-    connectWebSocket();
+    // 註冊新消息監聽器
+    const handleNewMessage = (message) => {
+      setMessages(prevMessages => [...prevMessages, message]);
+    };
+
+    WebSocketService.on('onNewMessage', handleNewMessage);
+
+    // 組件卸載時清理監聽器
     return () => {
-      if (stompClient) {
-        stompClient.disconnect();
-      }
+      WebSocketService.off('onNewMessage', handleNewMessage);
     };
   }, []);
-
-  const connectWebSocket = () => {
-    const sock = new SockJS(SOCKET_URL);
-    const client = Stomp.over(sock);
-
-    client.connect({}, () => {
-      setStompClient(client);
-      
-      // 訂閱私人訊息
-      client.subscribe(`/user/${currentUser}/queue/messages`, (message) => {
-        console.log('Received message:', message);
-        const newMessage = JSON.parse(message.body);
-        addMessage({
-          id: Date.now().toString(),
-          text: newMessage.content,
-          isUser: false,
-          timestamp: new Date(),
-          sender: newMessage.from
-        });
-      });
-
-      // 訂閱公開頻道
-      client.subscribe('/topic/public', (message) => {
-        const newMessage = JSON.parse(message.body);
-        // 系統消息可以特別處理
-        if (newMessage.type === 'SYSTEM') {
-          // 處理系統消息
-        }
-      });
-
-      // 註冊使用者
-      client.send("/app/chat.register", {}, 
-        JSON.stringify({
-          from: currentUser,
-          content: "已加入聊天",
-        })
-      );
-    });
-  };
-
-  const addMessage = (message) => {
-    setMessages(prevMessages => [...prevMessages, message]);
-    scrollViewRef.current?.scrollToEnd({ animated: true });
-  };
 
   const renderMessage = ({ item, index }) => {
     const isLastMessage = index === messages.length - 1;
@@ -108,29 +66,24 @@ const ChatScreen = ({ navigation, route }) => {
     );
   };
 
-  const sendMessage = () => {
-    if (inputText.trim() === '' || !stompClient) return;
+  const sendMessage = async (text) => {
+    try {
+      await WebSocketService.sendMessage(text);
+      
+      setMessages(prevMessages => [...prevMessages, {
+        id: Date.now(),
+        text,
+        sender: 'me',
+        timestamp: new Date()
+      }]);
 
-    const messageData = {
-      from: currentUser,
-      to: chattingWith,
-      content: inputText,
-      timestamp: new Date().toISOString()
-    };
-
-    // 發送訊息到伺服器
-    stompClient.send("/app/private-message", {}, JSON.stringify(messageData));
-
-    // 新增訊息到本地顯示
-    const newMessage = {
-      id: Date.now().toString(),
-      text: inputText,
-      isUser: true,
-      timestamp: new Date(),
-    };
-
-    addMessage(newMessage);
-    setInputText('');
+      // 如果有傳入更新回調函數，則調用它
+      if (route.params?.onMessageSent) {
+        route.params.onMessageSent();
+      }
+    } catch (error) {
+      console.error('發送消息失敗:', error);
+    }
   };
 
   React.useLayoutEffect(() => {
@@ -180,7 +133,7 @@ const ChatScreen = ({ navigation, route }) => {
               styles.sendButton,
               !inputText.trim() && styles.sendButtonDisabled
             ]}
-            onPress={sendMessage}
+            onPress={() => sendMessage(inputText)}
             disabled={!inputText.trim()}
           >
             <Text style={styles.sendButtonText}>發送</Text>

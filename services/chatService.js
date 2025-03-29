@@ -108,4 +108,22 @@ export const sendChatMessage = async (userId, matchData, content) => {
   };
   
   return await sendWebSocketMessage(messagePayload);
+};
+
+export const sendMessage = async (message) => {
+  try {
+    const response = await api.post('/messages', { message });
+    return response.data;
+  } catch (error) {
+    throw new Error('發送消息失敗');
+  }
+};
+
+export const fetchMessages = async (matchId) => {
+  try {
+    const response = await api.get(`/messages/${matchId}`);
+    return response.data;
+  } catch (error) {
+    throw new Error('獲取消息失敗');
+  }
 }; 

@@ -14,6 +14,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchMatchesAndMessages, checkDailyTarotStatus } from '../../services/api';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useFocusEffect } from '@react-navigation/native';
 const { width } = Dimensions.get('window');
 
 const BASE_URL = 'http://192.168.68.52:8080';
@@ -173,6 +174,52 @@ const MainScreen = ({ route, navigation }) => {
     }
   };
 
+  // 當畫面重新獲得焦點時重新獲取數據
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchData = async () => {
+        if (!useFakeData) {
+          try {
+            console.log('real');
+            const { matches, messages } = await fetchMatchesAndMessages();
+            console.log('Matches:', matches);
+            console.log('Messages:', messages);
+            
+            // Transform matches data
+            const transformedMatches = matches.map(match => ({
+              id: match.id,
+              name: match.name || 'Anonymous',
+              image: match.image,
+              roomNumber:match.roomNumber,
+              count: match.count,
+              type: match.id === 'likes' ? 'Likes' : undefined
+            }));
+
+            // Transform messages data
+            const transformedMessages = messages.map(message => ({
+              ...message,
+              image: message.image
+            }));
+            
+            setMatches(transformedMatches);
+            setMessages(transformedMessages);
+          } catch (error) {
+            console.error("Error fetching data: ", error);
+            // Fallback to fake data on error
+            setMatches(fakeMatches);
+            setMessages(fakeMessages);
+          }
+        } else {
+          console.log('useFakeData', useFakeData);
+          setMatches(fakeMatches);
+          setMessages(fakeMessages);
+        }
+      };
+
+      fetchData();
+    }, [])
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       {showNotification && (
@@ -329,7 +376,11 @@ const MainScreen = ({ route, navigation }) => {
           style={styles.navItem}
           onPress={() => navigation.navigate('Chat', {
             matchData: testChatData,
-            userData: userData || { id: 'currentUser', name: 'Current User' }
+            userData: userData || { id: 'currentUser', name: 'Current User' },
+            onMessageSent: () => {
+              // 重新獲取數據
+              fetchData();
+            }
           })}
         >
           <Text style={styles.navIcon}>💬</Text>
