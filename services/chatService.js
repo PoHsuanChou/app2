@@ -96,15 +96,14 @@ export const subscribeToChatHistory = (userId, matchId, onHistoryReceived) => {
  * @param {string} content - Message content
  * @returns {Promise} - Resolves when message is sent
  */
-export const sendChatMessage = async (userId, receiverId, content) => {
-  const chatRoomId = getChatRoomId(userId, receiverId);
+export const sendChatMessage = async (userId, matchData, content) => {
   
   const messagePayload = {
     type: 'TEXT',
-    chatRoomId: chatRoomId,
+    roomNumber: matchData.roomNumber,
     content: content,
     senderId: userId,
-    receiverId: receiverId,
+    receiverId: matchData.id,
     timestamp: new Date().toISOString()
   };
   

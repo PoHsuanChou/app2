@@ -16,6 +16,8 @@ import { fetchMatchesAndMessages, checkDailyTarotStatus } from '../../services/a
 import Icon from 'react-native-vector-icons/Ionicons';
 const { width } = Dimensions.get('window');
 
+const BASE_URL = 'http://192.168.68.52:8080';
+
 const EmptyMatches = () => (
   <View style={styles.emptyContainer}>
     <Text style={styles.emptyText}>No matches yet</Text>
@@ -79,13 +81,20 @@ const MainScreen = ({ route, navigation }) => {
           const transformedMatches = matches.map(match => ({
             id: match.id,
             name: match.name || 'Anonymous',
-            image: match.image ? { uri: `https://api.quin.world/uploads/${match.image}` } : require('../../assets/placeholder.png'),
+            image: match.image,
+            roomNumber:match.roomNumber,
             count: match.count,
             type: match.id === 'likes' ? 'Likes' : undefined
           }));
+
+          // Transform messages data
+          const transformedMessages = messages.map(message => ({
+            ...message,
+            image: message.image
+          }));
           
           setMatches(transformedMatches);
-          setMessages(messages);
+          setMessages(transformedMessages);
         } catch (error) {
           console.error("Error fetching data: ", error);
           // Fallback to fake data on error
@@ -217,7 +226,12 @@ const MainScreen = ({ route, navigation }) => {
                     </View>
                   ) : (
                     <>
-                      <Image source={match.image} style={styles.matchImage} />
+                      <Image 
+                        source={{uri:match.image}} 
+                        style={styles.matchImage}
+                        defaultSource={require('../../assets/placeholder.png')}
+                        onError={(e) => console.log('Match image loading error:', e.nativeEvent.error)}
+                      />
                       <View style={styles.matchInfo}>
                         <Text style={styles.matchName}>
                           {match.name.includes('@') ? match.name.split('@')[0] : match.name}
@@ -250,7 +264,12 @@ const MainScreen = ({ route, navigation }) => {
                   matchData: message
                 })}
               >
-                <Image source={message.image} style={styles.messageImage} />
+                <Image 
+                  source={message.image} 
+                  style={styles.messageImage}
+                  defaultSource={require('../../assets/placeholder.png')}
+                  onError={(e) => console.log('Message image loading error:', e.nativeEvent.error)}
+                />
                 <View style={styles.messageContent}>
                   <View style={styles.messageHeader}>
                     <Text style={styles.messageName}>{message.name}</Text>

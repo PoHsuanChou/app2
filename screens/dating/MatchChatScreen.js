@@ -94,6 +94,7 @@ const MatchChatScreen = ({ route, navigation }) => {
    * 訂閱聊天室和請求聊天歷史
    */
   useEffect(() => {
+  
     // 只有當 WebSocket 已連接並且有 userId 和 matchData.id 時才訂閱
     if (wsConnected && userId && matchData.id) {
       // 訂閱實時聊天消息
@@ -139,7 +140,7 @@ const MatchChatScreen = ({ route, navigation }) => {
           style={styles.headerTitleContainer}
         >
           <Image 
-            source={matchData.image} 
+            source={{ uri:matchData.image}} 
             style={styles.headerAvatar} 
           />
           <View style={styles.headerTextContainer}>
@@ -192,7 +193,7 @@ const MatchChatScreen = ({ route, navigation }) => {
       }, 100);
       
       // 發送消息
-      await sendChatMessage(userId, matchData.id, trimmedMessage);
+      await sendChatMessage(userId, matchData, trimmedMessage);
 
       // 更新消息狀態為已發送
       setMessages(prevMessages =>

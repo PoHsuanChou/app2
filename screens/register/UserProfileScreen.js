@@ -19,7 +19,7 @@ const UserProfileScreen = ({ route, navigation }) => {
         {/* 頭部照片區域 */}
         <View style={styles.header}>
           <Image 
-            source={userData.image} 
+            source={{ uri:userData.image}} 
             style={styles.profileImage}
           />
           <TouchableOpacity 
@@ -40,7 +40,7 @@ const UserProfileScreen = ({ route, navigation }) => {
           </Text>
 
           {/* 基本信息 */}
-          <View style={styles.basicInfo}>
+          {/* <View style={styles.basicInfo}>
             <Text style={styles.infoText}>
               <Ionicons name="location" size={16} color="#666" /> {userData.location || '未設置地點'}
             </Text>
@@ -50,7 +50,7 @@ const UserProfileScreen = ({ route, navigation }) => {
             <Text style={styles.infoText}>
               <Ionicons name="briefcase" size={16} color="#666" /> {userData.occupation || '未設置職業'}
             </Text>
-          </View>
+          </View> */}
 
           {/* 興趣標籤 */}
           <View style={styles.interestsContainer}>
