@@ -28,12 +28,13 @@ export const getChatRoomId = (userIdA, userIdB) => {
  * @param {Function} onNewMessage - Callback when new message is received
  * @returns {Object} - Subscription object with unsubscribe method
  */
-export const subscribeToChatRoom = (userId, matchId, onNewMessage) => {
-  const chatRoomId = getChatRoomId(userId, matchId);
+export const subscribeToChatRoom = (userId, matchId,matchData, onNewMessage) => {
   
-  const messageSubscription = subscribeToChat(chatRoomId, (message) => {
+  
+  const messageSubscription = subscribeToChat(matchData.roomNumber, (message) => {
     const wsMessage = JSON.parse(message.body);
-    if (wsMessage.chatRoomId === chatRoomId) {
+    console.log("wefwefwef: ",wsMessage)
+    if (wsMessage.chatRoomId === matchData.roomNumber) {
       const newMessage = {
         id: wsMessage.id || Date.now().toString(),
         text: wsMessage.content,
@@ -57,8 +58,7 @@ export const subscribeToChatRoom = (userId, matchId, onNewMessage) => {
  * @param {Function} onHistoryReceived - Callback when history is received
  * @returns {Object} - Subscription object with unsubscribe method
  */
-export const subscribeToChatHistory = (userId, matchId, onHistoryReceived) => {
-  const chatRoomId = getChatRoomId(userId, matchId);
+export const subscribeToChatHistory = (userId, matchId, matchData,onHistoryReceived) => {
   
   const historySubscription = addMessageListener(`/user/${userId}/queue/chat-history`, (history) => {
     try {
@@ -83,7 +83,7 @@ export const subscribeToChatHistory = (userId, matchId, onHistoryReceived) => {
   });
   
   // Request the chat history from the server
-  requestChatHistory(chatRoomId);
+  requestChatHistory(matchData.roomNumber);
   
   return historySubscription;
 };

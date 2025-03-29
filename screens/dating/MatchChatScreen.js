@@ -34,6 +34,7 @@ import { formatMessageTime, createMessage, updateMessageStatus } from '../../uti
 const MatchChatScreen = ({ route, navigation }) => {
   // 從路由參數獲取配對數據
   const { matchData } = route.params;
+
   
   // 狀態管理
   const [message, setMessage] = useState('');
@@ -98,7 +99,7 @@ const MatchChatScreen = ({ route, navigation }) => {
     // 只有當 WebSocket 已連接並且有 userId 和 matchData.id 時才訂閱
     if (wsConnected && userId && matchData.id) {
       // 訂閱實時聊天消息
-      const messageSubscription = subscribeToChatRoom(userId, matchData.id, (newMessage) => {
+      const messageSubscription = subscribeToChatRoom(userId, matchData.id,matchData, (newMessage) => {
         setMessages(prevMessages => [...prevMessages, newMessage]);
         
         // 滾動到最新消息
@@ -108,7 +109,7 @@ const MatchChatScreen = ({ route, navigation }) => {
       });
       
       // 訂閱聊天歷史
-      const historySubscription = subscribeToChatHistory(userId, matchData.id, (historyMessages) => {
+      const historySubscription = subscribeToChatHistory(userId, matchData.id,matchData, (historyMessages) => {
         setMessages(historyMessages);
         
         // 滾動到最新消息

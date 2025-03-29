@@ -265,7 +265,7 @@ const MainScreen = ({ route, navigation }) => {
                 })}
               >
                 <Image 
-                  source={message.image} 
+                  source={{uri:message.image}} 
                   style={styles.messageImage}
                   defaultSource={require('../../assets/placeholder.png')}
                   onError={(e) => console.log('Message image loading error:', e.nativeEvent.error)}

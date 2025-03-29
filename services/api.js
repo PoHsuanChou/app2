@@ -156,7 +156,8 @@ export const fetchMatchesAndMessages = async () => {
         id: message.id,
         name: message.name || 'Anonymous',
         message: message.lastMessage || '',
-        image: message.image ? { uri: `https://api.quin.world/uploads/${message.image}` } : require('../assets/placeholder.png'),
+        image: message.image ,
+        roomNumber: message.roomNumber,
         yourTurn: message.yourTurn || false
       }))
     };
