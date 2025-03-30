@@ -15,14 +15,6 @@ import { tarotApi } from '../../services/api';
 const { width, height } = Dimensions.get('window');
 
 // Add your tarot card meanings
-const tarotMeanings = {
-  0: {
-    name: "The Fool",
-    meaning: "New beginnings, spontaneity, faith, apparent foolishness",
-    description: "Take a leap of faith into new adventures. Trust your instincts and embrace new opportunities."
-  },
-  // Add more card meanings...
-};
 
 const CardRevealScreen = ({ navigation, route }) => {
   const [isFlipped, setIsFlipped] = useState(false);
