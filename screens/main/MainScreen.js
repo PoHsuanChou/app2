@@ -83,15 +83,17 @@ const MainScreen = ({ route, navigation }) => {
             id: match.id,
             name: match.name || 'Anonymous',
             image: match.image,
-            roomNumber:match.roomNumber,
+            roomNumber: match.roomNumber,
             count: match.count,
             type: match.id === 'likes' ? 'Likes' : undefined
           }));
 
-          // Transform messages data
+          // Transform messages data with content and timestamp
           const transformedMessages = messages.map(message => ({
             ...message,
-            image: message.image
+            image: message.image,
+            lastMessage: message.message,
+            lastMessageTime: formatMessageTime(message.lastMessageTime)
           }));
           
           setMatches(transformedMatches);
@@ -180,37 +182,34 @@ const MainScreen = ({ route, navigation }) => {
       const fetchData = async () => {
         if (!useFakeData) {
           try {
-            console.log('real');
             const { matches, messages } = await fetchMatchesAndMessages();
-            console.log('Matches:', matches);
-            console.log('Messages:', messages);
             
             // Transform matches data
             const transformedMatches = matches.map(match => ({
               id: match.id,
               name: match.name || 'Anonymous',
               image: match.image,
-              roomNumber:match.roomNumber,
+              roomNumber: match.roomNumber,
               count: match.count,
               type: match.id === 'likes' ? 'Likes' : undefined
             }));
 
-            // Transform messages data
+            // Transform messages data with content and timestamp
             const transformedMessages = messages.map(message => ({
               ...message,
-              image: message.image
+              image: message.image,
+              lastMessage: message.message,
+              lastMessageTime: formatMessageTime(message.lastMessageTime)
             }));
             
             setMatches(transformedMatches);
             setMessages(transformedMessages);
           } catch (error) {
             console.error("Error fetching data: ", error);
-            // Fallback to fake data on error
             setMatches(fakeMatches);
             setMessages(fakeMessages);
           }
         } else {
-          console.log('useFakeData', useFakeData);
           setMatches(fakeMatches);
           setMessages(fakeMessages);
         }
@@ -219,6 +218,42 @@ const MainScreen = ({ route, navigation }) => {
       fetchData();
     }, [])
   );
+
+  // Add this helper function to format the time
+  const formatMessageTime = (timestamp) => {
+    if (!timestamp) return '';
+    
+    try {
+      const now = new Date();
+      const messageTime = new Date(timestamp);
+      
+      // 檢查是否為有效日期
+      if (isNaN(messageTime.getTime())) {
+        return '';
+      }
+
+      const diffInMinutes = Math.floor((now - messageTime) / (1000 * 60));
+      
+      if (diffInMinutes < 1) return 'just now';
+      if (diffInMinutes < 60) return `${diffInMinutes}m`;
+      
+      const diffInHours = Math.floor(diffInMinutes / 60);
+      if (diffInHours < 24) return `${diffInHours}h`;
+      
+      const diffInDays = Math.floor(diffInHours / 24);
+      if (diffInDays === 1) return 'Yesterday';
+      if (diffInDays < 7) return `${diffInDays}d`;
+      
+      // 如果超過7天，顯示日期格式 MM/DD
+      return messageTime.toLocaleDateString(undefined, {
+        month: 'numeric',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return '';
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -320,21 +355,18 @@ const MainScreen = ({ route, navigation }) => {
                 <View style={styles.messageContent}>
                   <View style={styles.messageHeader}>
                     <Text style={styles.messageName}>{message.name}</Text>
-                    {/* {message.verified && (
-                      <View style={styles.verifiedBadge}>
-                        <Text style={styles.verifiedText}>✓</Text>
-                      </View>
-                    )} */}
-                    {/* {message.status && (
-                      <View style={styles.statusBadge}>
-                        <Text style={styles.statusText}>{message.status}</Text>
-                      </View>
-                    )} */}
+                    <Text style={styles.messageTime}>{message.lastMessageTime || '2m'}</Text>
                   </View>
                   {message.label && (
                     <Text style={styles.messageLabel}>In {message.label}</Text>
                   )}
-                  <Text style={styles.messageText}>{message.message}</Text>
+                  <Text 
+                    style={styles.messageText}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {message.lastMessage || message.message}
+                  </Text>
                 </View>
                 {message.yourTurn && (
                   <View style={styles.yourTurnBadge}>
@@ -457,24 +489,31 @@ const styles = StyleSheet.create({
   messageContent: {
     flex: 1,
     marginLeft: 15,
+    justifyContent: 'center',
   },
   messageHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   messageName: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-    marginRight: 5,
+  },
+  messageTime: {
+    color: '#666',
+    fontSize: 12,
   },
   messageLabel: {
     color: '#FF4458',
     fontSize: 12,
   },
   messageText: {
-    color: '#666',
-    marginTop: 5,
+    color: '#999',
+    fontSize: 14,
+    marginTop: 2,
   },
   verifiedBadge: {
     backgroundColor: '#5C5CFF',
@@ -488,17 +527,6 @@ const styles = StyleSheet.create({
   verifiedText: {
     color: 'white',
     fontSize: 12,
-  },
-  statusBadge: {
-    backgroundColor: '#FFD700',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  statusText: {
-    color: 'black',
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   yourTurnBadge: {
     backgroundColor: 'white',

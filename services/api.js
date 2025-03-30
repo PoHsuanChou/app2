@@ -155,12 +155,14 @@ export const fetchMatchesAndMessages = async () => {
       messages: messagesData.map(message => ({
         id: message.id,
         name: message.name || 'Anonymous',
-        message: message.lastMessage || '',
+        message: message.content || '',
         image: message.image ,
+        lastMessageTime: message.timestamp,
         roomNumber: message.roomNumber,
         yourTurn: message.yourTurn || false
       }))
     };
+
   } catch (error) {
     console.error('API Error:', error);
     throw error;
