@@ -376,11 +376,7 @@ const MainScreen = ({ route, navigation }) => {
           style={styles.navItem}
           onPress={() => navigation.navigate('Chat', {
             matchData: testChatData,
-            userData: userData || { id: 'currentUser', name: 'Current User' },
-            onMessageSent: () => {
-              // 重新獲取數據
-              fetchData();
-            }
+            userData: userData || { id: 'currentUser', name: 'Current User' }
           })}
         >
           <Text style={styles.navIcon}>💬</Text>

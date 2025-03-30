@@ -433,4 +433,31 @@ export const swipeUser = async (currentUserId, targetUserId, action) => {
     console.error('Swipe error:', error);
     throw error;
   }
+};
+
+// 獲取用戶詳細資料
+export const fetchUserProfile = async (userId) => {
+  try {
+    console.log("ppppp: ", userId);
+    const response = await fetch(`/api/user/profile/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${await AsyncStorage.getItem('userToken')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId: currentUserId,
+        targetUserId: targetUserId,
+        action: action,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error('Swipe failed');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    throw error;
+  }
 }; 
