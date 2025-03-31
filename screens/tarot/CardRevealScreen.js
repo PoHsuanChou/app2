@@ -1,242 +1,284 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
   Image,
-  Animated,
   Dimensions,
+  ScrollView,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { tarotApi } from '../../services/api';
+import { Ionicons } from '@expo/vector-icons';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+const cardWidth = width * 0.8;
+const cardHeight = cardWidth * 1.5; // 保持卡片的長寬比
 
-// Add your tarot card meanings
-
-const CardRevealScreen = ({ navigation, route }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
+const CardRevealScreen = ({ route, navigation }) => {
   const [cardData, setCardData] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isReversed] = useState(Math.random() < 0.5); // 隨機決定正逆位
   const { cardId } = route.params;
-  const flipAnim = useRef(new Animated.Value(0)).current;
 
-  const frontInterpolate = flipAnim.interpolate({
-    inputRange: [0, 180],
-    outputRange: ['0deg', '180deg'],
-  });
+  useEffect(() => {
+    const fetchCardData = async () => {
+      try {
+        const data = await tarotApi.getCardDetails(cardId);
+        setCardData(data);
+      } catch (error) {
+        console.error('Error fetching card:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const backInterpolate = flipAnim.interpolate({
-    inputRange: [0, 180],
-    outputRange: ['180deg', '360deg'],
-  });
+    fetchCardData();
+  }, [cardId]);
 
-  const fetchCardData = async () => {
-    console.log('Route params:', route.params);
-    console.log('Attempting to fetch card data for cardId:', cardId);
-    
-    setIsLoading(true);
-    try {
-      const data = await tarotApi.getCardDetails(cardId);
-      console.log('Successfully fetched card data:', data);
-      setCardData(data);
-    } catch (error) {
-      console.error('Error in fetchCardData:', error);
-      // 可以在這裡添加錯誤提示UI
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleTurnOver = async () => {
-    // 先獲取卡片數據
-    await fetchCardData();
-    
-    // 然後執行翻卡動畫
-    Animated.spring(flipAnim, {
-      toValue: 180,
-      friction: 8,
-      tension: 10,
-      useNativeDriver: true,
-    }).start(() => {
-      setIsFlipped(true);
+  const handleConsultation = () => {
+    navigation.navigate('TarotChat', { 
+      cardId: cardId,
+      cardName: cardData.name,
+      isReversed: isReversed
     });
   };
 
-  const frontAnimatedStyle = {
-    transform: [{ rotateY: frontInterpolate }],
-  };
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#ffd700" />
+      </View>
+    );
+  }
 
-  const backAnimatedStyle = {
-    transform: [{ rotateY: backInterpolate }],
-  };
+  if (!cardData) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Failed to load card data</Text>
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <TouchableOpacity 
-        style={styles.backButton} 
-        onPress={() => navigation.goBack()}
+        style={styles.backButton}
+        onPress={() => navigation.navigate('Main')}
       >
-        <Text style={styles.backText}>←</Text>
+        <Ionicons name="arrow-back" size={30} color="#ffd700" />
       </TouchableOpacity>
 
-      <View style={styles.cardContainer}>
-        <Animated.View style={[styles.cardFace, frontAnimatedStyle]}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.cardContainer}>
           <Image
-            source={require('../../assets/card-back.png')}
-            style={styles.cardImage}
+            source={{ uri: cardData.imageUrl }}
+            style={[
+              styles.cardImage,
+              isReversed && styles.reversedCard
+            ]}
             resizeMode="contain"
           />
-        </Animated.View>
+          <Text style={styles.cardName}>
+            {cardData.name}
+            {isReversed ? ' (Reversed)' : ''}
+          </Text>
+          
+          <View style={styles.infoContainer}>
+            <Text style={styles.sectionTitle}>Description</Text>
+            <Text style={styles.description}>{cardData.description}</Text>
 
-        <Animated.View style={[styles.cardFace, styles.cardBack, backAnimatedStyle]}>
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#FFD700" />
-            </View>
-          ) : cardData ? (
-            <View style={styles.meaningContainer}>
-              <Text style={styles.cardName}>{cardData.name}</Text>
-              <Text style={styles.meaningText}>{cardData.meaning}</Text>
-              <Text style={styles.descriptionText}>
-                {cardData.description}
+            <Text style={styles.sectionTitle}>Meaning</Text>
+            <View style={styles.meaningBox}>
+              <Text style={styles.meaningText}>
+                {isReversed ? cardData.meanings.reversed : cardData.meanings.upright}
               </Text>
             </View>
-          ) : (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>Failed to load card data</Text>
+
+            <View style={styles.additionalInfo}>
+              <Text style={styles.infoText}>Category: {cardData.category}</Text>
+              <Text style={styles.infoText}>Element: {cardData.elementalAffinity}</Text>
+              {cardData.zodiacAffinity && (
+                <Text style={styles.infoText}>
+                  Zodiac: {cardData.zodiacAffinity.join(', ')}
+                </Text>
+              )}
             </View>
-          )}
-        </Animated.View>
-      </View>
-
-      {!isFlipped && (
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={styles.turnOverButton}
-            onPress={handleTurnOver}
-          >
-            <Text style={styles.turnOverText}>Turn over</Text>
-          </TouchableOpacity>
+          </View>
 
           <TouchableOpacity 
-            style={styles.abandonButton}
-            onPress={() => navigation.goBack()}
+            style={styles.consultButton}
+            onPress={handleConsultation}
           >
-            <Text style={styles.abandonText}>Abandon, Choose Again</Text>
+            <Text style={styles.consultButtonText}>
+              Get Personal Reading
+            </Text>
+            <Text style={styles.consultButtonSubText}>
+              1-on-1 Tarot Consultation
+            </Text>
           </TouchableOpacity>
         </View>
-      )}
-    </SafeAreaView>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#1a1a1a', // 深色背景
   },
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
-  },
-  backText: {
-    color: 'white',
-    fontSize: 28,
-  },
-  cardContainer: {
+  scrollView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: 100,
-  },
-  cardFace: {
-    width: width * 0.8,
-    height: height * 0.6,
-    borderRadius: 20,
-    position: 'absolute',
-    backfaceVisibility: 'hidden',
-  },
-  cardBack: {
-    backgroundColor: '#1a1a1a',
-    padding: 20,
-    justifyContent: 'center',
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 20,
-  },
-  meaningContainer: {
-    alignItems: 'center',
-    padding: 20,
-  },
-  cardName: {
-    color: '#FFD700',
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  meaningText: {
-    color: '#B8860B',
-    fontSize: 24,
-    marginBottom: 30,
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  descriptionText: {
-    color: 'white',
-    fontSize: 18,
-    lineHeight: 28,
-    textAlign: 'center',
-  },
-  buttonContainer: {
-    position: 'absolute',
-    bottom: 40,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  turnOverButton: {
-    backgroundColor: '#8B4513',
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 25,
-    marginBottom: 20,
-    width: '80%',
-  },
-  turnOverText: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  abandonButton: {
-    paddingVertical: 10,
-  },
-  abandonText: {
-    color: '#999',
-    fontSize: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#1a1a1a',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+  },
+  cardContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  cardImage: {
+    width: cardWidth,
+    height: cardHeight,
+    borderRadius: 15,
+    marginBottom: 25,
+    backgroundColor: '#2d2d2d',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+    elevation: 8,
+  },
+  cardName: {
+    fontSize: 32, // 增大字體
+    fontWeight: 'bold',
+    marginBottom: 25,
+    color: '#ffd700', // 金色標題
+    textAlign: 'center',
+  },
+  infoContainer: {
+    width: '100%',
+    backgroundColor: '#2d2d2d', // 深灰色背景
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  sectionTitle: {
+    fontSize: 24, // 增大字體
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#ffd700', // 金色標題
+  },
+  description: {
+    fontSize: 18, // 增大字體
+    lineHeight: 28,
+    marginBottom: 25,
+    color: '#ffffff', // 白色文字
+  },
+  meaningsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 25,
+  },
+  meaningBox: {
+    padding: 20,
+    backgroundColor: '#3d3d3d',
+    borderRadius: 12,
+    marginBottom: 25,
+  },
+  meaningTitle: {
+    fontSize: 20, // 增大字體
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#ffd700', // 金色標題
+  },
+  meaningText: {
+    fontSize: 16, // 增大字體
+    color: '#ffffff', // 白色文字
+    lineHeight: 24,
+  },
+  additionalInfo: {
+    marginTop: 15,
+    padding: 15,
+    backgroundColor: '#3d3d3d', // 稍微淺一點的深灰色
+    borderRadius: 12,
+  },
+  infoText: {
+    fontSize: 16, // 增大字體
+    color: '#ffffff', // 白色文字
+    marginBottom: 8,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    zIndex: 1,
+    padding: 10,
+    backgroundColor: 'rgba(45, 45, 45, 0.8)',
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  reversedCard: {
+    transform: [{ rotate: '180deg' }],
+  },
+  consultButton: {
+    width: '100%',
+    backgroundColor: '#ffd700',
+    borderRadius: 15,
+    padding: 20,
+    marginTop: 25,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  consultButtonText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 5,
+  },
+  consultButtonSubText: {
+    fontSize: 16,
+    color: '#1a1a1a',
+    opacity: 0.8,
   },
   errorText: {
-    color: '#FF4444',
+    color: '#ffffff',
     fontSize: 18,
-    textAlign: 'center',
   },
 });
 

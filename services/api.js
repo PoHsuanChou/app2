@@ -157,6 +157,7 @@ export const fetchMatchesAndMessages = async () => {
         name: message.name || 'Anonymous',
         message: message.content || '',
         image: message.image ,
+        otherUserId: message.otherUserId,
         lastMessageTime: message.timestamp,
         roomNumber: message.roomNumber,
         yourTurn: message.yourTurn || false
@@ -195,21 +196,23 @@ export const tarotApi = {
     try {
       console.log('Fetching card details for cardId:', cardId);
       const token = await AsyncStorage.getItem('userToken');
-      console.log('Token:', token);
-      const response = await fetch(`${BASE_URL}/api/cards/getCard`,{
+      const response = await fetch(`${BASE_URL}/api/cards/getCard`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-      },
+        },
       });
-      console.log('API Response status:', response.status);
       
       if (!response.ok) {
         throw new Error('Failed to fetch card data');
       }
       
       const data = await response.json();
+      // 確保圖片 URL 是完整的
+      if (data.imageUrl && !data.imageUrl.startsWith('http')) {
+        data.imageUrl = `${BASE_URL}${data.imageUrl}`;
+      }
       console.log('Card data received:', data);
       return data;
     } catch (error) {
@@ -440,18 +443,12 @@ export const swipeUser = async (currentUserId, targetUserId, action) => {
 // 獲取用戶詳細資料
 export const fetchUserProfile = async (userId) => {
   try {
-    console.log("ppppp: ", userId);
-    const response = await fetch(`/api/user/profile/${userId}`, {
+    const response = await fetch(`${BASE_URL}/api/user/profile/${userId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${await AsyncStorage.getItem('userToken')}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        userId: currentUserId,
-        targetUserId: targetUserId,
-        action: action,
-      }),
     });
     if (!response.ok) {
       throw new Error('Swipe failed');

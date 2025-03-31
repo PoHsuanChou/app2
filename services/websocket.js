@@ -271,3 +271,27 @@ export const requestChatHistory = (chatRoomId) => {
   
   return true;
 };
+
+export const connectToWebSocket = async () => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    const ws = new WebSocket(`${WS_URL}?token=${token}`);
+
+    ws.onopen = () => {
+      console.log('WebSocket Connected');
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket Error:', error);
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket Disconnected');
+    };
+
+    return ws;
+  } catch (error) {
+    console.error('WebSocket Connection Error:', error);
+    return null;
+  }
+};

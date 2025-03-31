@@ -18,6 +18,7 @@ import MatchChatScreen from './screens/dating/MatchChatScreen';
 import InterestsScreen from './screens/register/InterestsScreen';
 import UserProfileScreen from './screens/register/UserProfileScreen';
 import ReadyToRegisterScreen from './screens/register/ReadyToRegisterScreen';
+import TarotChatScreen from './screens/tarot/TarotChatScreen';
 
 const Stack = createStackNavigator();
 
@@ -129,6 +130,17 @@ function App() {
           options={{
             headerShown: false,
             presentation: 'modal'
+          }}
+        />
+        <Stack.Screen 
+          name="TarotChat" 
+          component={TarotChatScreen}
+          options={{
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: '#1C1C1E',
+            },
+            headerTintColor: '#ffd700',
           }}
         />
       </Stack.Navigator>

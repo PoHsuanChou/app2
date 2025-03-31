@@ -14,7 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { fetchUserProfile } from '../../services/api';
 
 const UserProfileScreen = ({ route, navigation }) => {
-  const { userId } = route.params;
+
+  const userId = route.params.userData.otherUserId; // 直接賦值，不用解構
+  console.log("ppppL;",route)
+  const image = route.params.userData.image;
+  
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,8 +26,8 @@ const UserProfileScreen = ({ route, navigation }) => {
     
     const loadUserProfile = async () => {
       try {
-        const storedUserId = await AsyncStorage.getItem('userId');
-        const profile = await fetchUserProfile(storedUserId);
+
+        const profile = await fetchUserProfile(userId);
         setUserData(profile);
       } catch (error) {
         console.error('Failed to fetch user profile:', error);
@@ -62,8 +66,10 @@ const UserProfileScreen = ({ route, navigation }) => {
         {/* 頭部照片區域 */}
         <View style={styles.header}>
           <Image 
-            source={{ uri:userData.image}} 
+            source={{uri:image}} 
             style={styles.profileImage}
+            defaultSource={require('../../assets/placeholder.png')}
+            onError={(e) => console.log('Message image loading error:', e.nativeEvent.error)}
           />
           <TouchableOpacity 
             style={styles.closeButton}
