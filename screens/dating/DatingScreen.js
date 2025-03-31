@@ -31,6 +31,7 @@ const DatingScreen = ({ navigation }) => {
     outputRange: ['-10deg', '0deg', '10deg'],
   });
   const [showMatch, setShowMatch] = useState(false);
+  const [matchedUser, setMatchedUser] = useState(null);
   const matchScale = useRef(new Animated.Value(0)).current;
   const matchOpacity = useRef(new Animated.Value(0)).current;
   const sparklesOpacity = useRef(new Animated.Value(0)).current;
@@ -100,32 +101,50 @@ const DatingScreen = ({ navigation }) => {
     })
   ).current;
 
-  const showMatchAnimation = () => {
+  const showMatchAnimation = (matchData) => {
+    setMatchedUser(matchData);
     setShowMatch(true);
+    
+    // Reset animation values
     matchScale.setValue(0);
     matchOpacity.setValue(0);
     sparklesOpacity.setValue(0);
 
-    Animated.parallel([
+    // Create animation sequence with more dramatic effects
+    Animated.sequence([
+      // Fade in the overlay with a quick flash
+      Animated.timing(matchOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      // Start parallel animations after overlay is visible
+      Animated.parallel([
+        // Pop up scale animation for "It's a Match!" text with bounce
+        Animated.spring(matchScale, {
+          toValue: 1.1,  // Slightly overshoot
+          friction: 4,   // Less friction for more bounce
+          tension: 40,
+          useNativeDriver: true,
+        }),
+        // Delayed sparkles animation
+        Animated.sequence([
+          Animated.delay(200),
+          Animated.spring(sparklesOpacity, {
+            toValue: 1,
+            friction: 8,
+            tension: 40,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+      // Scale back to normal size
       Animated.spring(matchScale, {
         toValue: 1,
         friction: 6,
-        tension: 40,
+        tension: 20,
         useNativeDriver: true,
       }),
-      Animated.timing(matchOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.sequence([
-        Animated.delay(300),
-        Animated.timing(sparklesOpacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]),
     ]).start();
   };
 
@@ -157,16 +176,27 @@ const DatingScreen = ({ navigation }) => {
       const targetUserId = currentUser.id;
       console.log('Swiping right on user ID:', targetUserId);
   
-      const data = await swipeUser(currentUserId, targetUserId, 'LIKE');
-      console.log('Swipe right result:', data);
+      const response = await swipeUser(currentUserId, targetUserId, 'LIKE');
+      console.log('Swipe response:', response);
   
+      // 保存响应数据以便在匹配界面使用
+      const matchData = {
+        user: currentUser,
+        chatRoomId: response.chatRoomId
+      };
+      
       Animated.timing(position, {
         toValue: { x: SCREEN_WIDTH + 100, y: lastGesture.current.dy },
         duration: 250,
         useNativeDriver: true,
       }).start(() => {
-        if (data.isMatch) {
-          showMatchAnimation();
+        if (response.match) {
+          // 传递匹配数据
+          showMatchAnimation(matchData);
+          // Store chatRoomId if needed
+          if (response.chatRoomId) {
+            AsyncStorage.setItem(`chatRoom_${targetUserId}`, response.chatRoomId);
+          }
         } else {
           nextCard();
         }
@@ -342,48 +372,74 @@ const DatingScreen = ({ navigation }) => {
       <View style={styles.cardContainer}>{renderCard()}</View>
 
       {showMatch && (
-        <Animated.View style={[styles.matchOverlay, { opacity: matchOpacity }]}>
-          <Animated.Image
-            source={require('../../assets/tarot-ai-avatar.png')}
+        <Animated.View 
+          style={[
+            styles.matchOverlay, 
+            { opacity: matchOpacity }
+          ]}
+        >
+          <Animated.View
             style={[
-              styles.sparkles,
-              {
-                opacity: sparklesOpacity,
-                transform: [{ scale: matchScale }],
-              },
+              styles.matchContent,
+              { transform: [{ scale: matchScale }] }
             ]}
-          />
-          <Animated.Text style={[styles.matchText, { transform: [{ scale: matchScale }] }]}>
-            It's a Match!
-          </Animated.Text>
-          <Animated.View style={[styles.matchProfiles, { opacity: sparklesOpacity }]}>
-            {usersRef.current[currentIndex] && (
-              <Image
-                source={{ 
-                  uri: usersRef.current[currentIndex].image.startsWith('http')
-                    ? usersRef.current[currentIndex].image
-                    : usersRef.current[currentIndex].image.includes('localhost')
-                      ? 'http://' + usersRef.current[currentIndex].image.replace('localhost', '192.168.68.52')
-                      : `${BASE_URL}/static/uploads/${usersRef.current[currentIndex].image.split('/').pop()}`
-                }}
-                style={styles.matchProfile}
-                onError={(e) => console.log('Match profile image error:', e.nativeEvent.error)}
-              />
-            )}
-            <Image
-              source={require('../../assets/tarot-ai-avatar.png')}
-              style={styles.matchProfile}
-            />
-          </Animated.View>
-          <TouchableOpacity
-            style={styles.keepSwiping}
-            onPress={() => {
-              setShowMatch(false);
-              nextCard();
-            }}
           >
-            <Text style={styles.keepSwipingText}>Keep Swiping</Text>
-          </TouchableOpacity>
+            <Animated.Image
+              source={require('../../assets/tarot-ai-avatar.png')}
+              style={[
+                styles.sparkles,
+                { opacity: sparklesOpacity }
+              ]}
+            />
+            <Animated.Text style={styles.matchText}>
+              恭喜配对成功!
+            </Animated.Text>
+            <Animated.Text style={styles.matchSubText}>
+              你们看起来很合拍!
+            </Animated.Text>
+            <Animated.View 
+              style={[
+                styles.matchProfiles,
+                { opacity: sparklesOpacity }
+              ]}
+            >
+              {matchedUser && matchedUser.user && (
+                <Image
+                  source={{ uri: matchedUser.user.image }}
+                  style={styles.matchProfile}
+                />
+              )}
+              <Image
+                source={require('../../assets/tarot-ai-avatar.png')}
+                style={styles.matchProfile}
+              />
+            </Animated.View>
+            <View style={styles.matchButtons}>
+              <TouchableOpacity
+                style={styles.sendMessageButton}
+                onPress={() => {
+                  setShowMatch(false);
+                  if (matchedUser && matchedUser.chatRoomId) {
+                    navigation.navigate('ChatScreen', {
+                      matchedUser: matchedUser.user,
+                      chatRoomId: matchedUser.chatRoomId
+                    });
+                  }
+                }}
+              >
+                <Text style={styles.sendMessageText}>发送消息</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.keepSwiping}
+                onPress={() => {
+                  setShowMatch(false);
+                  nextCard();
+                }}
+              >
+                <Text style={styles.keepSwipingText}>继续浏览</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
         </Animated.View>
       )}
 
@@ -529,18 +585,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 1000,
   },
+  matchContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  sparkles: {
+    position: 'absolute',
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH,
+    opacity: 0.8,
+    transform: [{ scale: 1.2 }],
+  },
   matchText: {
     color: 'white',
     fontSize: 44,
     fontWeight: 'bold',
     marginBottom: 30,
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  sparkles: {
-    position: 'absolute',
-    width: SCREEN_WIDTH * 0.8,
-    height: SCREEN_WIDTH * 0.8,
-    opacity: 0.8,
+  matchSubText: {
+    color: '#cccccc',
+    fontSize: 18,
+    marginBottom: 30,
+    textAlign: 'center',
   },
   matchProfiles: {
     flexDirection: 'row',
@@ -549,22 +620,44 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   matchProfile: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 2,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
     borderColor: 'white',
     margin: 10,
   },
-  keepSwiping: {
+  matchButtons: {
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  sendMessageButton: {
     backgroundColor: '#5C5CFF',
-    paddingHorizontal: 30,
+    paddingHorizontal: 40,
     paddingVertical: 15,
     borderRadius: 25,
-    marginTop: 20,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  sendMessageText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  keepSwiping: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: '#5C5CFF',
+    paddingHorizontal: 40,
+    paddingVertical: 15,
+    borderRadius: 25,
   },
   keepSwipingText: {
-    color: 'white',
+    color: '#5C5CFF',
     fontSize: 18,
     fontWeight: '600',
   },

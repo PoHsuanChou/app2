@@ -35,7 +35,6 @@ const MatchChatScreen = ({ route, navigation }) => {
   // 從路由參數獲取配對數據
   const { matchData } = route.params;
 
-  
   // 狀態管理
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);

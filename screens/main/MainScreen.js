@@ -189,6 +189,7 @@ const MainScreen = ({ route, navigation }) => {
               id: match.id,
               name: match.name || 'Anonymous',
               image: match.image,
+              otherUserId: match.otherUserId,
               roomNumber: match.roomNumber,
               count: match.count,
               type: match.id === 'likes' ? 'Likes' : undefined
