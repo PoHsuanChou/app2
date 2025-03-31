@@ -88,6 +88,7 @@ const MatchChatScreen = ({ route, navigation }) => {
       }
     };
 
+
     getUserInfo();
   }, []);
 
@@ -136,6 +137,7 @@ const MatchChatScreen = ({ route, navigation }) => {
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: () => (
+        
         <TouchableOpacity 
           onPress={() => navigation.navigate('UserProfile', { userData: matchData })}
           style={styles.headerTitleContainer}
