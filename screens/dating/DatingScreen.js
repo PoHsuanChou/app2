@@ -384,61 +384,21 @@ const DatingScreen = ({ navigation }) => {
               { transform: [{ scale: matchScale }] }
             ]}
           >
-            <Animated.Image
-              source={require('../../assets/tarot-ai-avatar.png')}
-              style={[
-                styles.sparkles,
-                { opacity: sparklesOpacity }
-              ]}
-            />
             <Animated.Text style={styles.matchText}>
-              恭喜配对成功!
+              恭喜配對成功!
             </Animated.Text>
             <Animated.Text style={styles.matchSubText}>
               你们看起来很合拍!
             </Animated.Text>
-            <Animated.View 
-              style={[
-                styles.matchProfiles,
-                { opacity: sparklesOpacity }
-              ]}
+            <TouchableOpacity
+              style={[styles.keepSwiping, { marginTop: 30 }]}
+              onPress={() => {
+                setShowMatch(false);
+                nextCard();
+              }}
             >
-              {matchedUser && matchedUser.user && (
-                <Image
-                  source={{ uri: matchedUser.user.image }}
-                  style={styles.matchProfile}
-                />
-              )}
-              <Image
-                source={require('../../assets/tarot-ai-avatar.png')}
-                style={styles.matchProfile}
-              />
-            </Animated.View>
-            <View style={styles.matchButtons}>
-              <TouchableOpacity
-                style={styles.sendMessageButton}
-                onPress={() => {
-                  setShowMatch(false);
-                  if (matchedUser && matchedUser.chatRoomId) {
-                    navigation.navigate('ChatScreen', {
-                      matchedUser: matchedUser.user,
-                      chatRoomId: matchedUser.chatRoomId
-                    });
-                  }
-                }}
-              >
-                <Text style={styles.sendMessageText}>发送消息</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.keepSwiping}
-                onPress={() => {
-                  setShowMatch(false);
-                  nextCard();
-                }}
-              >
-                <Text style={styles.keepSwipingText}>继续浏览</Text>
-              </TouchableOpacity>
-            </View>
+              <Text style={styles.keepSwipingText}>继续浏览</Text>
+            </TouchableOpacity>
           </Animated.View>
         </Animated.View>
       )}
@@ -649,15 +609,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   keepSwiping: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#5C5CFF',
+    backgroundColor: '#5C5CFF',
     paddingHorizontal: 40,
     paddingVertical: 15,
     borderRadius: 25,
   },
   keepSwipingText: {
-    color: '#5C5CFF',
+    color: 'white',
     fontSize: 18,
     fontWeight: '600',
   },
