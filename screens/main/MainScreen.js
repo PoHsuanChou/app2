@@ -29,38 +29,38 @@ const EmptyMatches = () => (
 const MainScreen = ({ route, navigation }) => {
   const { userData } = route.params || {};
   // Fake data as a fallback
-  const fakeMatches = [
-    { id: 'likes', count: 98, type: 'Likes' },
-    { id: '1', name: 'Vivi', verified: true, image: require('../../assets/placeholder.png') },
-    { id: '2', name: 'Luna', image: require('../../assets/placeholder.png') },
-    { id: '3', name: 'Donna', image: require('../../assets/placeholder.png') },
-  ];
+  // const fakeMatches = [
+  //   { id: 'likes', count: 98, type: 'Likes' },
+  //   { id: '1', name: 'Vivi', verified: true, image: require('../../assets/placeholder.png') },
+  //   { id: '2', name: 'Luna', image: require('../../assets/placeholder.png') },
+  //   { id: '3', name: 'Donna', image: require('../../assets/placeholder.png') },
+  // ];
 
-  const fakeMessages = [
-    { 
-      id: '1', 
-      name: 'Kelly', 
-      message: 'Recently active, match now!',
-      image: require('../../assets/placeholder.png'),
-      email: 'test@test.com'
+  // const fakeMessages = [
+  //   { 
+  //     id: '1', 
+  //     name: 'Kelly', 
+  //     message: 'Recently active, match now!',
+  //     image: require('../../assets/placeholder.png'),
+  //     email: 'test@test.com'
 
-    },
-    { 
-      id: '2', 
-      name: 'Ann', 
-      message: 'Hello Ann',
-      image: require('../../assets/placeholder.png'),
-      email: 'test@test.com'
-    },
-    { 
-      id: '3', 
-      name: 'R', 
-      message: 'Heyyyy',
-      image: require('../../assets/placeholder.png'),
-      email: 'test@test.com',
-      yourTurn: true 
-    },
-  ];
+  //   },
+  //   { 
+  //     id: '2', 
+  //     name: 'Ann', 
+  //     message: 'Hello Ann',
+  //     image: require('../../assets/placeholder.png'),
+  //     email: 'test@test.com'
+  //   },
+  //   { 
+  //     id: '3', 
+  //     name: 'R', 
+  //     message: 'Heyyyy',
+  //     image: require('../../assets/placeholder.png'),
+  //     email: 'test@test.com',
+  //     yourTurn: true 
+  //   },
+  // ];
   // State to manage whether to use real or fake data
   const [useFakeData, setUseFakeData] = useState(false); // Change this to 'false' for real API calls
   const [matches, setMatches] = useState([]);
@@ -104,11 +104,12 @@ const MainScreen = ({ route, navigation }) => {
           setMatches(fakeMatches);
           setMessages(fakeMessages);
         }
-      } else {
-        console.log('useFakeData', useFakeData);
-        setMatches(fakeMatches);
-        setMessages(fakeMessages);
-      }
+      } 
+      // else {
+      //   console.log('useFakeData', useFakeData);
+      //   setMatches(fakeMatches);
+      //   setMessages(fakeMessages);
+      // }
     };
 
     fetchData();
@@ -391,19 +392,31 @@ const MainScreen = ({ route, navigation }) => {
           style={styles.navItem}
           onPress={handleTarotNavigation}
         >
-          <Text style={styles.navIcon}>🔥</Text>
+          {/* <Text style={styles.navIcon}>🔥</Text> */}
+          <Image 
+      source={require('../../assets/logo/tarot.png')} // 調整路徑根據實際位置
+      style={{ width: 40, height: 40 }} // 設定圖片大小，可根據需要調整
+    />
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.navItem}
           onPress={() => navigation.navigate('dating')}
         >
-          <Text style={styles.navIcon}>🔍</Text>
+          {/* <Text style={styles.navIcon}>🔍</Text> */}
+          <Image 
+      source={require('../../assets/logo/puzzle.png')} // 調整路徑根據實際位置
+      style={{ width: 40, height: 40 }} // 設定圖片大小，可根據需要調整
+    />
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.navItem}
           onPress={() => navigation.navigate('Settings')}
         >
-          <Text style={styles.navIcon}>✨</Text>
+          {/* <Text style={styles.navIcon}>✨</Text> */}
+          <Image 
+      source={require('../../assets/logo/settings.png')} // 調整路徑根據實際位置
+      style={{ width: 40, height: 40 }} // 設定圖片大小，可根據需要調整
+    />
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.navItem}
@@ -412,7 +425,11 @@ const MainScreen = ({ route, navigation }) => {
             userData: userData || { id: 'currentUser', name: 'Current User' }
           })}
         >
-          <Text style={styles.navIcon}>💬</Text>
+          {/* <Text style={styles.navIcon}>💬</Text> */}
+          <Image 
+      source={require('../../assets/logo/ai.png')} // 調整路徑根據實際位置
+      style={{ width: 40, height: 40 }} // 設定圖片大小，可根據需要調整
+    />
         </TouchableOpacity>
       </View>
     </SafeAreaView>

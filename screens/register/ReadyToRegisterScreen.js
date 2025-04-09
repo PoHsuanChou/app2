@@ -18,7 +18,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 const { width, height } = Dimensions.get('window');
 
 // Import your card image
-const cardImage = require('../../assets/card-back.png'); // Updated path to match new location
+const cardImage = require('../../assets/logo/tarotCard.png'); // Updated path to match new location
 
 const ReadyToRegisterScreen = ({ navigation, route }) => {
   const [isRegistering, setIsRegistering] = useState(false);

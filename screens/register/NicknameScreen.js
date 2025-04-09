@@ -19,7 +19,7 @@ const NicknameScreen = ({ navigation, route }) => {
 
   const handleContinue = () => {
     if (!nickname.trim()) {
-      Alert.alert('提示', '請輸入暱稱');
+      Alert.alert('Hint', 'Please enter your username');
       return;
     }
 
@@ -40,14 +40,14 @@ const NicknameScreen = ({ navigation, route }) => {
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.title}>你好!</Text>
-            <Text style={styles.subtitle}>讓我們開始認識你</Text>
+            <Text style={styles.title}>Hello!</Text>
+            <Text style={styles.subtitle}>Tell me about yourself</Text>
           </View>
 
           <View style={styles.inputSection}>
             <TextInput
               style={styles.input}
-              placeholder="輸入你的暱稱"
+              placeholder="Enter your username"
               placeholderTextColor="#666"
               value={nickname}
               onChangeText={setNickname}
@@ -56,7 +56,7 @@ const NicknameScreen = ({ navigation, route }) => {
             />
             <TextInput
               style={[styles.input, styles.bioInput]}
-              placeholder="介紹一下你自己..."
+              placeholder="Introduce yourself..."
               placeholderTextColor="#666"
               value={bio}
               onChangeText={setBio}
@@ -71,7 +71,7 @@ const NicknameScreen = ({ navigation, route }) => {
           onPress={handleContinue}
           disabled={!nickname.trim()}
         >
-          <Text style={styles.buttonText}>下一步</Text>
+          <Text style={styles.buttonText}>Next Step</Text>
           <Ionicons name="arrow-forward" size={20} color="#fff" style={styles.buttonIcon} />
         </TouchableOpacity>
       </KeyboardAvoidingView>

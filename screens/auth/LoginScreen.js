@@ -181,7 +181,7 @@ const handleGoogleSignIn = async () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         {/* Header */}
-        <Text style={styles.title}>Start your Journey{'\n'}with Quin </Text>
+        <Text style={styles.title}>Start your Journey{'\n'} </Text>
 
         {/* Email Input */}
         <TextInput

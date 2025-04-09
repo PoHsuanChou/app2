@@ -15,11 +15,11 @@ const InterestsScreen = ({ navigation, route }) => {
   const registrationData = route.params;
   
   const interests = [
-    '塔羅牌', '占星術', '冥想', '瑜伽',
-    '靈性成長', '心理學', '自我提升',
-    '藝術', '音樂', '旅行', '美食',
-    '運動', '攝影', '閱讀', '寫作',
-    '電影', '戶外活動', '寵物'
+    'Tarot cards', 'Astrology', 'Meditation', 'Yoga',
+    'Spiritual growth', 'Psychology', 'Self-improvement',
+    'Art', 'Music', 'Travel', 'Gourmet food',
+    'Exercise', 'Photography', 'Reading', 'Writing',
+    'Movies', 'Outdoor activities', 'Pets'
   ];
 
   const toggleInterest = (interest) => {
@@ -32,7 +32,7 @@ const InterestsScreen = ({ navigation, route }) => {
 
   const handleContinue = () => {
     if (selectedInterests.length < 3) {
-      Alert.alert('提示', '請至少選擇3個興趣');
+      Alert.alert('Hint', 'Please at least pick 3');
       return;
     }
 
@@ -45,8 +45,8 @@ const InterestsScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>選擇興趣</Text>
-        <Text style={styles.subtitle}>選擇1-5個你感興趣的話題</Text>
+        <Text style={styles.title}>Choose your interest</Text>
+        <Text style={styles.subtitle}>Choose 1-5 topics that you find interesting</Text>
         <View style={styles.counter}>
           <Text style={styles.counterText}>
             {selectedInterests.length}/5
@@ -85,7 +85,7 @@ const InterestsScreen = ({ navigation, route }) => {
         onPress={handleContinue}
         disabled={selectedInterests.length === 0}
       >
-        <Text style={styles.buttonText}>下一步</Text>
+        <Text style={styles.buttonText}>Next Step</Text>
         <Ionicons name="arrow-forward" size={20} color="#fff" style={styles.buttonIcon} />
       </TouchableOpacity>
     </SafeAreaView>

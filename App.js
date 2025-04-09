@@ -27,7 +27,7 @@ const FirstScreen = ({ navigation }) => {
     <View style={styles.container}>
       <Text style={styles.title}>Start Your Tarot Journey</Text>
       <Text style={styles.description}>
-        Log in to unlock all features. To better understand you and provide personalized Tarot guidance, we'll ask you a few questions. Then, choose your favorite Tarot deck and embark on your spiritual journey.
+        Log in to unlock all features.
       </Text>
       <View style={styles.buttonContainer}>
         <Button 
@@ -35,11 +35,11 @@ const FirstScreen = ({ navigation }) => {
           color="#6495ED" 
           onPress={() => navigation.navigate('Login')}
         />
-        <Button 
+        {/* <Button 
           title="測試聊天" 
           color="#f4511e" 
           onPress={() => navigation.navigate('Chat')}
-        />
+        /> */}
       </View>
     </View>
   );

@@ -12,10 +12,10 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { AntDesign } from '@expo/vector-icons';
 
-const defaultProfileImage = require('../../assets/default-profile.png');
+const defaultProfileImage = require('../../assets/logo/defaultUser.png');
 
 const ProfilePictureScreen = ({ navigation, route }) => {
-  const [image, setImage] = useState(defaultProfileImage);
+  const [image, setImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   console.log('ProfilePictureScreen route.params:', route.params);
@@ -41,6 +41,8 @@ const ProfilePictureScreen = ({ navigation, route }) => {
     if (!image) {
       Alert.alert('Please select a profile picture');
       return;
+
+      
     }
 
     const registrationData = {
@@ -64,7 +66,7 @@ const ProfilePictureScreen = ({ navigation, route }) => {
           {typeof image === 'string' ? (
             <Image source={{ uri: image }} style={styles.profileImage} />
           ) : (
-            <Image source={image} style={styles.profileImage} />
+            <Image source={require('../../assets/logo/defaultUser.png')} style={styles.profileImage} />
           )}
           <View style={styles.editBadge}>
             <Text style={styles.editBadgeText}>Edit</Text>
