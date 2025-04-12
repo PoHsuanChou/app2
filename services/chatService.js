@@ -3,8 +3,10 @@
  * 提供聊天相關功能的服務層，負責處理聊天訊息的發送和接收
  */
 import { 
-  sendWebSocketMessage, 
+  sendWebSocketMessageForAI, 
+  sendWebSocketMessage,
   subscribeToChat, 
+  subscribeToChatForAI,
   addMessageListener,
   requestChatHistory
 } from './websocket';
@@ -33,7 +35,6 @@ export const subscribeToChatRoom = (userId, matchId,matchData, onNewMessage) => 
   
   const messageSubscription = subscribeToChat(matchData.roomNumber, (message) => {
     const wsMessage = JSON.parse(message.body);
-    console.log("wefwefwef: ",wsMessage)
     if (wsMessage.chatRoomId === matchData.roomNumber) {
       const newMessage = {
         id: wsMessage.id || Date.now().toString(),
@@ -127,3 +128,54 @@ export const fetchMessages = async (matchId) => {
     throw new Error('獲取消息失敗');
   }
 }; 
+
+
+/**
+ * Send a chat message
+ * 發送聊天訊息
+ * @param {string} userId - Sender's user ID
+ * @param {string} receiverId - Receiver's user ID
+ * @param {string} content - Message content
+ * @returns {Promise} - Resolves when message is sent
+ */
+export const sendChatMessageForAI = async (userId, content) => {
+  
+  const messagePayload = {
+    type: 'TEXT',
+    content: content,
+    senderId: userId,
+    timestamp: new Date().toISOString()
+  };
+  
+  return await sendWebSocketMessageForAI(messagePayload);
+};
+
+
+/**
+ * Subscribe to a chat room and receive messages
+ * 訂閱聊天室並接收訊息
+ * @param {string} userId - Current user's ID
+ * @param {string} matchId - Match user's ID
+ * @param {Function} onNewMessage - Callback when new message is received
+ * @returns {Object} - Subscription object with unsubscribe method
+ */
+export const subscribeToChatRoomForAI = (userId, onNewMessage) => {
+  
+  
+  const messageSubscription = subscribeToChatForAI(userId, (message) => {
+    console.log("wwww: ",messageSubscription)
+    const wsMessage = JSON.parse(message.body);
+      const newMessage = {
+        id: wsMessage.id || Date.now().toString(),
+        text: wsMessage.content,
+        sender:'ai',
+        timestamp: new Date(wsMessage.timestamp),
+        status: 'received'
+      };
+      
+      onNewMessage(newMessage);
+    
+  });
+  
+  return messageSubscription;
+};

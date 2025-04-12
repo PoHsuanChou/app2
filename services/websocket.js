@@ -166,6 +166,34 @@ export const sendWebSocketMessage = async (message) => {
 };
 
 /**
+ * Send a message through WebSocket
+ * 通過 WebSocket 發送消息
+ * @param {Object} message - Message to send
+ * @returns {Promise} - Resolves when message is sent
+ */
+export const sendWebSocketMessageForAI = async (message) => {
+  return new Promise((resolve, reject) => {
+    if (!stompClient?.connected) {
+      reject(new Error('WebSocket is not connected'));
+      return;
+    }
+    console.log('message:', message);
+
+    try {
+      stompClient.publish({
+        destination: '/app/ai',
+        body: JSON.stringify(message),
+        headers: { 'content-type': 'application/json' }
+      });
+      resolve(true);
+    } catch (error) {
+      console.error('Send message error:', error);
+      reject(error);
+    }
+  });
+};
+
+/**
  * Disconnect from WebSocket
  * 斷開 WebSocket 連接
  */
@@ -244,6 +272,28 @@ export const subscribeToChat = (chatRoomId, onMessageReceived) => {
   console.log(`Subscribing to chat room: ${chatRoomId}`);
   const subscription = stompClient.subscribe(
     `/topic/chat/${chatRoomId}`, 
+    onMessageReceived
+  );
+  
+  return subscription;
+};
+
+/**
+ * Subscribe to a chat room
+ * 訂閱聊天室
+ * @param {string} chatRoomId - Chat room ID
+ * @param {Function} onMessageReceived - Callback when message is received
+ * @returns {Object} - Subscription object
+ */
+export const subscribeToChatForAI = ( userId,onMessageReceived) => {
+  if (!isConnected()) {
+    console.error('WebSocket not connected');
+    return null;
+  }
+  
+  console.log(`Subscribing to chat room: ${userId}`);
+  const subscription = stompClient.subscribe(
+    `/topic/chat/${userId}`, 
     onMessageReceived
   );
   

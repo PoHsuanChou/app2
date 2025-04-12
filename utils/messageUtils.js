@@ -46,3 +46,23 @@ export const updateMessageStatus = (messages, messageId, newStatus) => {
     msg.id === messageId ? { ...msg, status: newStatus } : msg
   );
 }; 
+
+
+/**
+ * Create a new message object
+ * 創建新的消息對象
+ * @param {string} text - Message text
+ * @param {string} sender - Message sender ('user' or 'match')
+ * @param {string} [id] - Message ID (optional)
+ * @param {string} [status] - Message status (optional)
+ * @returns {Object} - Message object
+ */
+export const createMessageForAI = (text,id = null, status = 'sending') => {
+  return {
+    id: id || Date.now().toString(),
+    text,
+    timestamp: new Date(),
+    isUser: true, // 確保這裡明確設置為 true
+    status
+  };
+};

@@ -2,31 +2,81 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Animated, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import WebSocketService from '../../services/websocket';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  initializeWebSocket, 
+  disconnectWebSocket,
+  isConnected
+} from '../../services/websocket';
+import {
+  subscribeToChatRoomForAI,
+  sendChatMessageForAI,
+} from '../../services/chatService';
+import {createMessageForAI, updateMessageStatus } from '../../utils/messageUtils';
 
 const ChatScreen = ({ navigation, route }) => {
+  const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
-  const [inputText, setInputText] = useState('');
-  const scrollViewRef = useRef();
+  const [userId, setUserId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
   
-  // 假設這些值從路由參數或登入狀態獲取
-  const currentUser = route.params?.currentUser || 'user1';
-  const chattingWith = route.params?.chattingWith || 'user2';
-  const { matchData, userData } = route.params;
+  const flatListRef = useRef(null);
 
   useEffect(() => {
-    // 註冊新消息監聽器
-    const handleNewMessage = (message) => {
-      setMessages(prevMessages => [...prevMessages, message]);
+    const setupWebSocket = async () => {
+      try {
+        await initializeWebSocket();
+        setWsConnected(true);
+      } catch (error) {
+        console.error('WebSocket connection failed:', error);
+        setWsConnected(false);
+      }
     };
 
-    WebSocketService.on('onNewMessage', handleNewMessage);
+    setupWebSocket();
 
-    // 組件卸載時清理監聽器
     return () => {
-      WebSocketService.off('onNewMessage', handleNewMessage);
+      disconnectWebSocket();
     };
   }, []);
+
+  useEffect(() => {
+    const getUserInfo = async () => {
+      try {
+        const storedUserId = await AsyncStorage.getItem('userId');
+        if (storedUserId) {
+          setUserId(storedUserId);
+          console.log('userId:', storedUserId);
+        } else {
+          console.log('No userId found');
+        }
+      } catch (error) {
+        console.error('Error fetching user userId:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getUserInfo();
+  }, []);
+
+  useEffect(() => {
+    if (wsConnected && userId) {
+      const messageSubscription = subscribeToChatRoomForAI(userId, (newMessage) => {
+        setMessages(prevMessages => [...prevMessages, newMessage]);
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      });
+
+      return () => {
+        if (messageSubscription) {
+          messageSubscription.unsubscribe();
+        }
+      };
+    }
+  }, [wsConnected, userId]);
 
   const renderMessage = ({ item, index }) => {
     const isLastMessage = index === messages.length - 1;
@@ -41,7 +91,7 @@ const ChatScreen = ({ navigation, route }) => {
       >
         {!item.isUser && (
           <Image
-            source={require('../../assets/tarot-ai-avatar.png')}
+            source={require('../../assets/chatbot.png')}
             style={styles.avatar}
           />
         )}
@@ -66,23 +116,30 @@ const ChatScreen = ({ navigation, route }) => {
     );
   };
 
-  const sendMessage = async (text) => {
-    try {
-      await WebSocketService.sendMessage(text);
-      
-      setMessages(prevMessages => [...prevMessages, {
-        id: Date.now(),
-        text,
-        sender: 'me',
-        timestamp: new Date()
-      }]);
+  const sendMessage = async () => {
+    const trimmedMessage = message.trim();
+    if (!trimmedMessage || isLoading || !wsConnected) return;
 
-      // 如果有傳入更新回調函數，則調用它
-      if (route.params?.onMessageSent) {
-        route.params.onMessageSent();
-      }
+    setIsLoading(true);
+    
+    try {
+      const newMessage = createMessageForAI(trimmedMessage);
+      setMessages(prevMessages => [...prevMessages, newMessage]);
+      setMessage('');
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+      await sendChatMessageForAI(userId, trimmedMessage);
+      setMessages(prevMessages =>
+        updateMessageStatus(prevMessages, newMessage.id, 'sent')
+      );
     } catch (error) {
-      console.error('發送消息失敗:', error);
+      console.error('Failed to send message:', error);
+      setMessages(prevMessages =>
+        updateMessageStatus(prevMessages, newMessage.id, 'failed')
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -102,27 +159,24 @@ const ChatScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.text}>Chat with {matchData.name}</Text>
-        <Text style={styles.text}>Your name: {userData?.name || 'User'}</Text>
-      </View>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}
+        style={styles.keyboardContainer}
       >
         <FlatList
-          ref={scrollViewRef}
+          ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.messageList}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd()}
+          style={styles.messageListContainer}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
         />
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            value={inputText}
-            onChangeText={setInputText}
+            value={message}
+            onChangeText={setMessage}
             placeholder="輸入訊息..."
             placeholderTextColor="#666"
             multiline
@@ -131,10 +185,10 @@ const ChatScreen = ({ navigation, route }) => {
           <TouchableOpacity
             style={[
               styles.sendButton,
-              !inputText.trim() && styles.sendButtonDisabled
+              !message.trim() && styles.sendButtonDisabled
             ]}
-            onPress={() => sendMessage(inputText)}
-            disabled={!inputText.trim()}
+            onPress={sendMessage} // 修正：移除多餘的參數
+            disabled={!message.trim()}
           >
             <Text style={styles.sendButtonText}>發送</Text>
           </TouchableOpacity>
@@ -149,16 +203,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'black',
   },
-  content: {
-    flex: 1,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+  keyboardContainer: {
+    flex: 1, // 讓 KeyboardAvoidingView 佔滿整個螢幕
   },
-  text: {
-    color: 'white',
-    fontSize: 18,
-    marginBottom: 10,
+  messageListContainer: {
+    flexGrow: 1, // 讓 FlatList 填滿可用空間
   },
   messageList: {
     padding: 15,
@@ -175,6 +224,7 @@ const styles = StyleSheet.create({
   },
   userMessage: {
     alignSelf: 'flex-end',
+    flexDirection: 'row-reverse',
   },
   aiMessage: {
     alignSelf: 'flex-start',
@@ -260,4 +310,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ChatScreen; 
+export default ChatScreen;
