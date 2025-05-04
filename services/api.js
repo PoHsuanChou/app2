@@ -4,7 +4,8 @@ import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:8080';
+// const BASE_URL = 'http://localhost:8080';
+const BASE_URL = 'http://35.201.141.93:30553/';
 
 export const registerUser = async (userData) => {
   try {

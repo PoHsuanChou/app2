@@ -2,20 +2,20 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import { loginUser } from '../../services/api'; // Import loginUser
-import {
-  GoogleSignin,
-  GoogleSigninButton,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
+// import {
+//   GoogleSignin,
+//   GoogleSigninButton,
+//   statusCodes,
+// } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-GoogleSignin.configure({
-  webClientId: '776267765563-f9rjs6jav75c50mvsdupk9d5s8qrqel8.apps.googleusercontent.com', 
-  scopes: ['https://www.googleapis.com/auth/drive.readonly'], 
-  offlineAccess: true, 
-  forceCodeForRefreshToken: false, 
-  iosClientId: '776267765563-qqr5df6oibl0cpmh5ca6rk948245k20r.apps.googleusercontent.com',
-});
+// GoogleSignin.configure({
+//   webClientId: '776267765563-f9rjs6jav75c50mvsdupk9d5s8qrqel8.apps.googleusercontent.com', 
+//   scopes: ['https://www.googleapis.com/auth/drive.readonly'], 
+//   offlineAccess: true, 
+//   forceCodeForRefreshToken: false, 
+//   iosClientId: '776267765563-qqr5df6oibl0cpmh5ca6rk948245k20r.apps.googleusercontent.com',
+// });
 
 
 
@@ -26,73 +26,73 @@ const LoginScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
 
 // Frontend implementation
-const handleGoogleSignIn = async () => {
-  try {
-    await GoogleSignin.hasPlayServices();
-    console.log('Google Play Services available');
+// const handleGoogleSignIn = async () => {
+//   try {
+//     await GoogleSignin.hasPlayServices();
+//     console.log('Google Play Services available');
 
-    const response = await GoogleSignin.signIn();
-    console.log('Google Sign-in response:', response.data.idToken);
+//     const response = await GoogleSignin.signIn();
+//     console.log('Google Sign-in response:', response.data.idToken);
 
-    if (response?.data.idToken) {
-      try {
-        console.log('Sending ID Token to backend:', response.data.idToken);
-        const backendResponse = await fetch('http://localhost:8080/api/auth/google', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            idToken: response.data.idToken 
-          }),
-        });
+//     if (response?.data.idToken) {
+//       try {
+//         console.log('Sending ID Token to backend:', response.data.idToken);
+//         const backendResponse = await fetch('http://localhost:8080/api/auth/google', {
+//           method: 'POST',
+//           headers: {
+//             'Content-Type': 'application/json',
+//           },
+//           body: JSON.stringify({ 
+//             idToken: response.data.idToken 
+//           }),
+//         });
 
-        console.log('Backend status:', backendResponse.status);
-        const responseText = await backendResponse.text();
-        console.log('Backend raw response:', responseText);
+//         console.log('Backend status:', backendResponse.status);
+//         const responseText = await backendResponse.text();
+//         console.log('Backend raw response:', responseText);
 
-        let data;
-        try {
-          data = responseText ? JSON.parse(responseText) : null;
-        } catch (e) {
-          console.error('JSON parsing error:', e);
-          throw new Error('Invalid response format from server');
-        }
+//         let data;
+//         try {
+//           data = responseText ? JSON.parse(responseText) : null;
+//         } catch (e) {
+//           console.error('JSON parsing error:', e);
+//           throw new Error('Invalid response format from server');
+//         }
 
-        if (!backendResponse.ok) {
-          throw new Error(`Server error: ${data?.message || backendResponse.statusText}`);
-        }
+//         if (!backendResponse.ok) {
+//           throw new Error(`Server error: ${data?.message || backendResponse.statusText}`);
+//         }
 
-        console.log('Backend parsed response:', data);
+//         console.log('Backend parsed response:', data);
 
-        if (data?.success) {
-          console.log('data:', data);
-          if (data.message === '01') {
-            navigation.navigate('Nickname', { 
-              email: data.email,
-              isGoogleLogin: data.google,
-            });
-          } else if (data.message === '02') {
-            await AsyncStorage.setItem('userToken', data.token);
-            await AsyncStorage.setItem('userId', data.userId);
-            navigation.navigate('Main', {
-              // userData: data.user,
-              // token: data.token
-            });
-          }
-        } else {
-          throw new Error(data?.message || 'Authentication failed');
-        }
-      } catch (error) {
-        console.error('Backend communication error:', error);
-        Alert.alert('Error', error.message || 'Authentication failed');
-      }
-    }
-  } catch (error) {
-    console.error('Google Sign-in error:', error);
-    Alert.alert('Error', 'Google sign-in failed. Please try again.');
-  }
-};
+//         if (data?.success) {
+//           console.log('data:', data);
+//           if (data.message === '01') {
+//             navigation.navigate('Nickname', { 
+//               email: data.email,
+//               isGoogleLogin: data.google,
+//             });
+//           } else if (data.message === '02') {
+//             await AsyncStorage.setItem('userToken', data.token);
+//             await AsyncStorage.setItem('userId', data.userId);
+//             navigation.navigate('Main', {
+//               // userData: data.user,
+//               // token: data.token
+//             });
+//           }
+//         } else {
+//           throw new Error(data?.message || 'Authentication failed');
+//         }
+//       } catch (error) {
+//         console.error('Backend communication error:', error);
+//         Alert.alert('Error', error.message || 'Authentication failed');
+//       }
+//     }
+//   } catch (error) {
+//     console.error('Google Sign-in error:', error);
+//     Alert.alert('Error', 'Google sign-in failed. Please try again.');
+//   }
+// };
 
   const isSuccessResponse = (response) => {
     return response && response.type === 'success' && response.data && response.data.idToken;
@@ -245,10 +245,10 @@ const handleGoogleSignIn = async () => {
           <Text style={styles.socialButtonText}>Continue with Apple</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.socialButton, styles.googleButton]} onPress={handleGoogleSignIn}>
+        {/* <TouchableOpacity style={[styles.socialButton, styles.googleButton]} onPress={handleGoogleSignIn}>
           <AntDesign name="google" size={24} color="black" />
           <Text style={[styles.socialButtonText, styles.googleText]}>Continue with Google</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         {/* Terms and Privacy */}
         <Text style={styles.terms}>

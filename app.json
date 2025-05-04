@@ -4,22 +4,28 @@
     "slug": "app2",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo/chatbot.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
+      "image": "./assets/logo/chatbot.png",
+      "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.paulchou417.app2"
+      "bundleIdentifier": "com.paulchou417.app2",
+      "icon": "./assets/logo/chatbot.png",
+      "capabilities": {
+        "sign-in-with-apple": false
+      }
+      
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#ffffff",
+        "icon": "./assets/logo/chatbot.png"
       },
       "package": "com.paulchou417.app2"
     },

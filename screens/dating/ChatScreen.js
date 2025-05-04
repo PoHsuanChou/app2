@@ -91,7 +91,7 @@ const ChatScreen = ({ navigation, route }) => {
       >
         {!item.isUser && (
           <Image
-            source={require('../../assets/chatbot.png')}
+            source={require('../../assets/logo/chatbot.png')}
             style={styles.avatar}
           />
         )}
